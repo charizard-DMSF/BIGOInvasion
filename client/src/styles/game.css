@@ -1,3 +1,4 @@
+/* Base styles */
 html,
 body {
     margin: 0;
@@ -17,26 +18,27 @@ body {
     align-items: center;
 }
 
+/* Game container */
 .game-container {
     width: 100%;
     height: 100%;
     position: relative;
     touch-action: none;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
 }
 
 .game-board {
-    width: 800px;
-    height: 600px;
+    width: 1200px;
+    height: 800px;
     background: #000;
     position: relative;
     overflow: hidden;
     border: 2px solid #333;
-    margin-top: 60px;
 }
 
+/* HUD */
 .hud {
     position: absolute;
     top: 20px;
@@ -48,6 +50,7 @@ body {
     text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
 }
 
+/* Player */
 .player {
     width: 32px;
     height: 32px;
@@ -58,8 +61,10 @@ body {
     transition: all 0.05s linear;
     box-shadow: 0 0 10px #00ff00;
     transform: translate(-50%, -50%);
+    z-index: 10;
 }
 
+/* Enemy */
 .enemy {
     width: 24px;
     height: 24px;
@@ -70,6 +75,7 @@ body {
     transition: all 0.1s linear;
     box-shadow: 0 0 10px #ff0000;
     transform: translate(-50%, -50%);
+    z-index: 5;
 }
 
 .enemy-health {
@@ -79,19 +85,45 @@ body {
     text-align: center;
     color: white;
     font-size: 12px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-/* Optional: Add these for better game feel */
-.player:active,
+/* Debug shot */
+.debug-shot {
+    position: absolute;
+    color: #00ff00;
+    font-family: monospace;
+    font-size: 12px;
+    text-shadow: 0 0 5px #00ff00;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 8;
+}
+
+.debug-shot::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: #00ff00;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    box-shadow: 0 0 5px #00ff00;
+}
+
+/* Movement states */
 .player.moving {
     box-shadow: 0 0 15px #00ff00;
 }
 
-.enemy:hover {
-    box-shadow: 0 0 15px #ff0000;
+.player.dashing {
+    box-shadow: 0 0 25px #00ff00;
+    animation: dashPulse 0.15s ease-in-out;
 }
 
-/* Add a grid pattern to the game board for better visual reference */
+/* Grid background */
 .game-board::before {
     content: '';
     position: absolute;
@@ -99,14 +131,17 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100%;
+    height: 100%;
     background-image:
-        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 20px 20px;
+        linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    transform-origin: center center;
     pointer-events: none;
 }
 
-/* If you want to add a retro CRT effect */
+/* CRT effect */
 .game-board::after {
     content: '';
     position: absolute;
@@ -122,14 +157,75 @@ body {
     opacity: 0.15;
 }
 
-/* Add some styles for projectiles when we implement shooting */
-.projectile {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: #fff;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 5px #fff;
-    pointer-events: none;
+/* Animations */
+@keyframes dashPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Enemy hit animation */
+.enemy.hit {
+    animation: enemyHit 0.2s ease-in-out;
+}
+
+@keyframes enemyHit {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        filter: brightness(2);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        filter: brightness(1);
+    }
+}
+
+/* Death animation */
+.enemy.dying {
+    animation: death 0.5s ease-out forwards;
+}
+
+@keyframes death {
+    0% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(0) rotate(180deg);
+        opacity: 0;
+    }
+}
+
+/* Player damage flash */
+.player.damaged {
+    animation: damageFlash 0.2s ease-in-out;
+}
+
+@keyframes damageFlash {
+    0% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(3) saturate(2);
+    }
+
+    100% {
+        filter: brightness(1);
+    }
 }

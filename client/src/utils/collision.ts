@@ -1,8 +1,8 @@
 import { Position, Enemy, Projectile } from '../types/game.types';
 
-const PLAYER_SIZE = 32;  // Width/height of player in pixels
-const ENEMY_SIZE = 24;   // Width/height of enemies in pixels
-const PROJECTILE_SIZE = 8;  // Width/height of projectiles in pixels
+const PLAYER_SIZE = 32;
+const ENEMY_SIZE = 24;
+const PROJECTILE_SIZE = 8;
 
 interface Bounds {
     left: number;
@@ -11,7 +11,6 @@ interface Bounds {
     bottom: number;
 }
 
-// Get bounding box for any entity
 function getBounds(position: Position, size: number): Bounds {
     return {
         left: position.x,
@@ -21,7 +20,6 @@ function getBounds(position: Position, size: number): Bounds {
     };
 }
 
-// Check if two bounding boxes overlap
 function checkBoundsCollision(bounds1: Bounds, bounds2: Bounds): boolean {
     return !(
         bounds1.right < bounds2.left ||
@@ -31,7 +29,6 @@ function checkBoundsCollision(bounds1: Bounds, bounds2: Bounds): boolean {
     );
 }
 
-// Check collision between player and enemy
 export function checkPlayerEnemyCollision(
     playerPosition: Position,
     enemy: Enemy
@@ -41,7 +38,6 @@ export function checkPlayerEnemyCollision(
     return checkBoundsCollision(playerBounds, enemyBounds);
 }
 
-// Check collision between projectile and enemy
 export function checkProjectileEnemyCollision(
     projectile: Projectile,
     enemy: Enemy
@@ -51,7 +47,6 @@ export function checkProjectileEnemyCollision(
     return checkBoundsCollision(projectileBounds, enemyBounds);
 }
 
-// Check if position is within game bounds
 export function isInBounds(position: Position, bounds: { width: number; height: number }): boolean {
     return (
         position.x >= 0 &&
@@ -61,14 +56,12 @@ export function isInBounds(position: Position, bounds: { width: number; height: 
     );
 }
 
-// Calculate distance between two positions
 export function getDistance(pos1: Position, pos2: Position): number {
     const dx = pos2.x - pos1.x;
     const dy = pos2.y - pos1.y;
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-// Get normalized direction vector between two positions
 export function getDirection(from: Position, to: Position): Position {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
@@ -79,7 +72,6 @@ export function getDirection(from: Position, to: Position): Position {
     };
 }
 
-// For homing projectiles or enemy movement
 export function moveTowards(
     current: Position,
     target: Position,
