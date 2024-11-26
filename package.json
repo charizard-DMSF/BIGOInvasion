@@ -1,0 +1,11 @@
+{
+  "name": "bigoinvasion",
+  "version": "1.0.0",
+  "description": "Educational video game to learn Big O Notation.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
