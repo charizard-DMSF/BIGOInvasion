@@ -15,12 +15,17 @@ const BASE_SPEED = 8;
 const DASH_MULTIPLIER = 2.5;
 const DASH_DURATION = 150;
 const PROJECTILE_SPEED = 12;
+const CHARGED_PROJECTILE_SPEED = 15;
 const DEBUG_DAMAGE = 25;
+const CHARGED_DAMAGE = 75;
+const MAX_CHARGE_TIME = 1000; // 1 second for max charge
 
 interface Projectile {
     id: string;
     position: { x: number; y: number };
     direction: { x: number; y: number };
+    isCharged?: boolean;
+    piercing?: boolean;
 }
 
 const Game: React.FC = () => {
@@ -31,10 +36,13 @@ const Game: React.FC = () => {
     const [canDash, setCanDash] = useState(true);
     const [isMoving, setIsMoving] = useState(false);
     const [projectiles, setProjectiles] = useState<Projectile[]>([]);
+    const [isCharging, setIsCharging] = useState(false);
+    const [chargeStartTime, setChargeStartTime] = useState(0);
 
     useEnemySpawner();
     useGameLoop();
 
+    // ... previous movement code ...
     const moveCharacter = useCallback((keys: Set<string>) => {
         let dx = 0;
         let dy = 0;
@@ -76,14 +84,23 @@ const Game: React.FC = () => {
         }, DASH_DURATION * 3);
     }, [canDash]);
 
-    const shoot = useCallback((e: MouseEvent) => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+    const startCharge = useCallback((e: MouseEvent) => {
+        setIsCharging(true);
+        setChargeStartTime(Date.now());
+    }, []);
+
+    const releaseCharge = useCallback((e: MouseEvent) => {
+        if (!isCharging) return;
+
+        const chargeTime = Date.now() - chargeStartTime;
+        const isFullyCharged = chargeTime >= MAX_CHARGE_TIME;
 
         const board = document.querySelector('.game-board');
         if (!board) return;
         const rect = board.getBoundingClientRect();
 
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
         const dx = mouseX - (rect.left + playerPosition.x);
         const dy = mouseY - (rect.top + playerPosition.y);
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -94,11 +111,14 @@ const Game: React.FC = () => {
             direction: {
                 x: dx / distance,
                 y: dy / distance
-            }
+            },
+            isCharged: isFullyCharged,
+            piercing: isFullyCharged
         };
 
         setProjectiles(prev => [...prev, projectile]);
-    }, [playerPosition]);
+        setIsCharging(false);
+    }, [isCharging, chargeStartTime, playerPosition]);
 
     useEffect(() => {
         const keys = new Set<string>();
@@ -125,25 +145,27 @@ const Game: React.FC = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
-        window.addEventListener('click', shoot);
+        window.addEventListener('mousedown', startCharge);
+        window.addEventListener('mouseup', releaseCharge);
 
         return () => {
             clearInterval(gameLoop);
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
-            window.removeEventListener('click', shoot);
+            window.removeEventListener('mousedown', startCharge);
+            window.removeEventListener('mouseup', releaseCharge);
         };
-    }, [moveCharacter, handleDash, shoot]);
+    }, [moveCharacter, handleDash, startCharge, releaseCharge]);
 
-    // Separate projectile movement effect
+    // Projectile movement
     useEffect(() => {
         const projectileLoop = setInterval(() => {
             setProjectiles(prev => {
                 const updated = prev.map(projectile => ({
                     ...projectile,
                     position: {
-                        x: projectile.position.x + projectile.direction.x * PROJECTILE_SPEED,
-                        y: projectile.position.y + projectile.direction.y * PROJECTILE_SPEED
+                        x: projectile.position.x + projectile.direction.x * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : PROJECTILE_SPEED),
+                        y: projectile.position.y + projectile.direction.y * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : PROJECTILE_SPEED)
                     }
                 }));
 
@@ -159,7 +181,7 @@ const Game: React.FC = () => {
         return () => clearInterval(projectileLoop);
     }, []);
 
-    // Separate collision detection effect
+    // Collision detection
     useEffect(() => {
         const collisionLoop = setInterval(() => {
             setProjectiles(prev => {
@@ -173,8 +195,13 @@ const Game: React.FC = () => {
                         const distance = Math.sqrt(dx * dx + dy * dy);
 
                         if (distance < 20) {
-                            dispatch(damageEnemy({ id: enemy.id, damage: DEBUG_DAMAGE }));
-                            toRemove.add(projectile.id);
+                            dispatch(damageEnemy({
+                                id: enemy.id,
+                                damage: projectile.isCharged ? CHARGED_DAMAGE : DEBUG_DAMAGE
+                            }));
+                            if (!projectile.piercing) {
+                                toRemove.add(projectile.id);
+                            }
                         }
                     });
                 });
@@ -192,7 +219,7 @@ const Game: React.FC = () => {
                 <HUD />
                 <div className="game-board">
                     <div
-                        className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''}`}
+                        className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
                         style={{
                             left: `${playerPosition.x}px`,
                             top: `${playerPosition.y}px`,
@@ -204,13 +231,13 @@ const Game: React.FC = () => {
                     {projectiles.map(projectile => (
                         <div
                             key={projectile.id}
-                            className="projectile debug-shot"
+                            className={`projectile debug-shot ${projectile.isCharged ? 'charged' : ''}`}
                             style={{
                                 left: `${projectile.position.x}px`,
                                 top: `${projectile.position.y}px`
                             }}
                         >
-                            console.log()
+                            {projectile.isCharged ? 'console.error()' : 'console.log()'}
                         </div>
                     ))}
 

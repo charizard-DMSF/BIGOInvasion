@@ -229,3 +229,31 @@ body {
         filter: brightness(1);
     }
 }
+
+.player.charging {
+    animation: charge 1s linear;
+}
+
+.debug-shot.charged {
+    color: #ff3333;
+    font-size: 14px;
+    text-shadow: 0 0 8px #ff3333;
+}
+
+.debug-shot.charged::before {
+    background: #ff3333;
+    height: 3px;
+    box-shadow: 0 0 8px #ff3333;
+}
+
+@keyframes charge {
+    0% {
+        filter: brightness(1);
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    100% {
+        filter: brightness(2);
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+}
