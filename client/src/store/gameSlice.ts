@@ -12,6 +12,7 @@ const initialState: GameState = {
     playerPosition: { x: 600, y: 400 },
     playerHealth: 100,
     enemies: [],
+    projectiles: [], 
     gameStatus: 'menu',
     wave: 1
 };

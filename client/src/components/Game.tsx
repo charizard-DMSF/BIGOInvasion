@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { movePlayer, damageEnemy, damagePlayer, setGameStatus, resetGame } from '../store/gameSlice';
+import { movePlayer, damageEnemy, damagePlayer, setGameStatus, resetGame, updateEnemies } from '../store/gameSlice';
 import { v4 as uuidv4 } from 'uuid';
 import Player from './Player';
 import Enemy from './Enemy';
@@ -9,23 +9,31 @@ import HUD from './HUD';
 import Menu from './Menu';
 import Lose from './Lose';
 import { useEnemySpawner } from '../hooks/useEnemySpawner';
-import { useGameLoop } from '../hooks/useGameLoop';
 import { checkPlayerEnemyCollision } from '../utils/collision';
 
-const GAME_WIDTH = 1200;
-const GAME_HEIGHT = 800;
-const BASE_SPEED = 8;
-const DASH_MULTIPLIER = 2.5;
-const DASH_DURATION = 150;
-const PROJECTILE_SPEED = 12;
-const CHARGED_PROJECTILE_SPEED = 15;
-const DEBUG_DAMAGE = 25;
-const CHARGED_DAMAGE = 75;
-const MAX_CHARGE_TIME = 1000;
-const ENEMY_COLLISION_DAMAGE = 10;
-const ENEMY_COLLISION_COOLDOWN = 1000;
-const SANITY_GAIN_ON_KILL = 2;
+// game board dimensions in pixels
+const VIEWPORT_WIDTH = 1200;
+const VIEWPORT_HEIGHT = 800;
 
+// player movement settings
+const PLAYER_BASE_SPEED = 8;
+const DASH_SPEED_MULTIPLIER = 2.5;
+const DASH_DURATION_MS = 150;
+
+// projectile configuration
+const NORMAL_PROJECTILE_SPEED = 12;
+const CHARGED_PROJECTILE_SPEED = 15;
+const NORMAL_PROJECTILE_DAMAGE = 25;
+const CHARGED_PROJECTILE_DAMAGE = 75;
+const CHARGE_TIME_MS = 1000;
+
+// enemy interaction settings
+const ENEMY_COLLISION_DAMAGE = 10;
+const COLLISION_IMMUNITY_DURATION_MS = 1000;
+const HEALTH_RESTORE_ON_KILL = 2;
+const ENEMY_MOVEMENT_SPEED = 2;
+
+// projectile entity definition that represents a single projectile in the game
 interface Projectile {
     id: string;
     position: { x: number; y: number };
@@ -36,85 +44,113 @@ interface Projectile {
 
 const Game: React.FC = () => {
     const dispatch = useDispatch();
-    const { playerPosition, enemies, playerHealth: playerSanity, gameStatus } = useSelector((state: RootState) => state.game);
-    const keysPressed = useRef<{ [key: string]: boolean }>({});
+    const { playerPosition, enemies, playerHealth: sanityLevel, gameStatus } = useSelector((state: RootState) => state.game);
+
+    // input state tracking
+    const activeKeys = useRef<{ [key: string]: boolean }>({});
+
+    // player state
     const [isDashing, setIsDashing] = useState(false);
     const [canDash, setCanDash] = useState(true);
     const [isMoving, setIsMoving] = useState(false);
-    const [projectiles, setProjectiles] = useState<Projectile[]>([]);
     const [isCharging, setIsCharging] = useState(false);
-    const [chargeStartTime, setChargeStartTime] = useState(0);
-    const animationFrameId = useRef<number>();
-    const lastUpdateTime = useRef<number>(0);
-    const lastDamageTime = useRef<number>(0);
+    const [chargeStartTimestamp, setChargeStartTimestamp] = useState(0);
+
+    // game state tracking
+    const [activeProjectiles, setActiveProjectiles] = useState<Projectile[]>([]);
+    const lastFrameTimestamp = useRef<number>(0);
+    const lastDamageTimestamp = useRef<number>(0);
+    const frameRequestId = useRef<number>();
 
     useEnemySpawner();
-    useGameLoop();
 
-    const startGame = useCallback(() => {
+    const initializeGame = useCallback(() => {
         dispatch(resetGame());
         dispatch(setGameStatus('playing'));
     }, [dispatch]);
 
-    const restartGame = useCallback(() => {
+    const resetGameState = useCallback(() => {
         dispatch(resetGame());
         dispatch(setGameStatus('playing'));
-        setProjectiles([]);
+        setActiveProjectiles([]);
         setIsDashing(false);
         setCanDash(true);
         setIsMoving(false);
         setIsCharging(false);
-        lastDamageTime.current = 0;
-        lastUpdateTime.current = 0;
+        lastDamageTimestamp.current = 0;
+        lastFrameTimestamp.current = 0;
     }, [dispatch]);
 
-    const moveCharacter = useCallback((deltaTime: number) => {
+    const updatePlayerPosition = useCallback((deltaTime: number) => {
         if (gameStatus !== 'playing') return;
 
-        let dx = 0;
-        let dy = 0;
+        let horizontalMovement = 0;
+        let verticalMovement = 0;
 
-        const keys = keysPressed.current;
-        if (keys['w'] || keys['W'] || keys['ArrowUp']) dy -= 1;
-        if (keys['s'] || keys['S'] || keys['ArrowDown']) dy += 1;
-        if (keys['a'] || keys['A'] || keys['ArrowLeft']) dx -= 1;
-        if (keys['d'] || keys['D'] || keys['ArrowRight']) dx += 1;
+        const keys = activeKeys.current;
+        if (keys['w'] || keys['W'] || keys['ArrowUp']) verticalMovement -= 1;
+        if (keys['s'] || keys['S'] || keys['ArrowDown']) verticalMovement += 1;
+        if (keys['a'] || keys['A'] || keys['ArrowLeft']) horizontalMovement -= 1;
+        if (keys['d'] || keys['D'] || keys['ArrowRight']) horizontalMovement += 1;
 
-        const isCurrentlyMoving = dx !== 0 || dy !== 0;
-        setIsMoving(isCurrentlyMoving);
+        const isPlayerMoving = horizontalMovement !== 0 || verticalMovement !== 0;
+        setIsMoving(isPlayerMoving);
 
-        if (!isCurrentlyMoving) return;
+        if (!isPlayerMoving) return;
 
-        if (dx !== 0 && dy !== 0) {
-            dx /= Math.sqrt(2);
-            dy /= Math.sqrt(2);
+        if (horizontalMovement !== 0 && verticalMovement !== 0) {
+            horizontalMovement /= Math.sqrt(2);
+            verticalMovement /= Math.sqrt(2);
         }
 
-        const currentSpeed = BASE_SPEED * (isDashing ? DASH_MULTIPLIER : 1);
-        dx *= currentSpeed * (deltaTime / 16.667);
-        dy *= currentSpeed * (deltaTime / 16.667);
+        const currentSpeed = PLAYER_BASE_SPEED * (isDashing ? DASH_SPEED_MULTIPLIER : 1);
+        horizontalMovement *= currentSpeed * (deltaTime / 16.667);
+        verticalMovement *= currentSpeed * (deltaTime / 16.667);
 
-        const newX = Math.max(0, Math.min(GAME_WIDTH - 32, playerPosition.x + dx));
-        const newY = Math.max(0, Math.min(GAME_HEIGHT - 32, playerPosition.y + dy));
+        const newX = Math.max(0, Math.min(VIEWPORT_WIDTH - 32, playerPosition.x + horizontalMovement));
+        const newY = Math.max(0, Math.min(VIEWPORT_HEIGHT - 32, playerPosition.y + verticalMovement));
 
         dispatch(movePlayer({ x: newX, y: newY }));
     }, [dispatch, playerPosition, isDashing, gameStatus]);
 
-    const checkEnemyCollisions = useCallback(() => {
+    const updateEnemyPositions = useCallback((deltaTime: number) => {
+        if (!enemies.length || gameStatus !== 'playing') return;
+
+        const updatedEnemies = enemies.map(enemy => {
+            const distanceX = playerPosition.x - enemy.position.x;
+            const distanceY = playerPosition.y - enemy.position.y;
+            const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+            if (totalDistance === 0) return enemy;
+
+            const speed = ENEMY_MOVEMENT_SPEED * (deltaTime / 16.667);
+            const newX = enemy.position.x + (distanceX / totalDistance) * speed;
+            const newY = enemy.position.y + (distanceY / totalDistance) * speed;
+
+            return {
+                ...enemy,
+                position: { x: newX, y: newY }
+            };
+        });
+
+        dispatch(updateEnemies(updatedEnemies));
+    }, [dispatch, enemies, playerPosition, gameStatus]);
+
+    const detectCollisions = useCallback(() => {
         if (gameStatus !== 'playing') return;
 
         const currentTime = Date.now();
-        if (currentTime - lastDamageTime.current < ENEMY_COLLISION_COOLDOWN) return;
+        if (currentTime - lastDamageTimestamp.current < COLLISION_IMMUNITY_DURATION_MS) return;
 
         enemies.forEach(enemy => {
             if (checkPlayerEnemyCollision(playerPosition, enemy)) {
                 dispatch(damagePlayer(ENEMY_COLLISION_DAMAGE));
-                lastDamageTime.current = currentTime;
+                lastDamageTimestamp.current = currentTime;
             }
         });
     }, [enemies, playerPosition, dispatch, gameStatus]);
 
-    const handleDash = useCallback(() => {
+    const activateDash = useCallback(() => {
         if (!canDash || gameStatus !== 'playing') return;
 
         setIsDashing(true);
@@ -122,100 +158,101 @@ const Game: React.FC = () => {
 
         setTimeout(() => {
             setIsDashing(false);
-        }, DASH_DURATION);
+        }, DASH_DURATION_MS);
 
         setTimeout(() => {
             setCanDash(true);
-        }, DASH_DURATION * 3);
+        }, DASH_DURATION_MS * 3);
     }, [canDash, gameStatus]);
 
-    const startCharge = useCallback((e: MouseEvent) => {
+    const startProjectileCharge = useCallback((e: MouseEvent) => {
         if (gameStatus !== 'playing') return;
 
         if (e.button === 0) {
             setIsCharging(true);
-            setChargeStartTime(Date.now());
+            setChargeStartTimestamp(Date.now());
         }
     }, [gameStatus]);
 
-    const releaseCharge = useCallback((e: MouseEvent) => {
+    const releaseProjectile = useCallback((e: MouseEvent) => {
         if (gameStatus !== 'playing') return;
 
         if (e.button === 0 && isCharging) {
-            const chargeTime = Date.now() - chargeStartTime;
-            const isFullyCharged = chargeTime >= MAX_CHARGE_TIME;
+            const chargeTime = Date.now() - chargeStartTimestamp;
+            const isFullyCharged = chargeTime >= CHARGE_TIME_MS;
 
-            const board = document.querySelector('.game-board');
-            if (!board) return;
-            const rect = board.getBoundingClientRect();
+            const gameBoard = document.querySelector('.game-board');
+            if (!gameBoard) return;
+            const boardRect = gameBoard.getBoundingClientRect();
 
             const mouseX = e.clientX;
             const mouseY = e.clientY;
-            const dx = mouseX - (rect.left + playerPosition.x);
-            const dy = mouseY - (rect.top + playerPosition.y);
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            const directionX = mouseX - (boardRect.left + playerPosition.x);
+            const directionY = mouseY - (boardRect.top + playerPosition.y);
+            const distance = Math.sqrt(directionX * directionX + directionY * directionY);
 
             const projectile = {
                 id: uuidv4(),
                 position: { ...playerPosition },
                 direction: {
-                    x: dx / distance,
-                    y: dy / distance
+                    x: directionX / distance,
+                    y: directionY / distance
                 },
                 isCharged: isFullyCharged,
                 piercing: isFullyCharged
             };
 
-            setProjectiles(prev => [...prev, projectile]);
+            setActiveProjectiles(prev => [...prev, projectile]);
             setIsCharging(false);
         }
-    }, [isCharging, chargeStartTime, playerPosition, gameStatus]);
+    }, [isCharging, chargeStartTimestamp, playerPosition, gameStatus]);
 
     const gameLoop = useCallback((timestamp: number) => {
         if (gameStatus !== 'playing') return;
 
-        if (!lastUpdateTime.current) {
-            lastUpdateTime.current = timestamp;
+        if (!lastFrameTimestamp.current) {
+            lastFrameTimestamp.current = timestamp;
         }
 
-        const deltaTime = timestamp - lastUpdateTime.current;
-        moveCharacter(deltaTime);
-        checkEnemyCollisions();
+        const deltaTime = timestamp - lastFrameTimestamp.current;
+        updatePlayerPosition(deltaTime);
+        updateEnemyPositions(deltaTime);
+        detectCollisions();
 
-        setProjectiles(prev => {
+        setActiveProjectiles(prev => {
             const updated = prev.map(projectile => ({
                 ...projectile,
                 position: {
-                    x: projectile.position.x + projectile.direction.x * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : PROJECTILE_SPEED) * (deltaTime / 16.667),
-                    y: projectile.position.y + projectile.direction.y * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : PROJECTILE_SPEED) * (deltaTime / 16.667)
+                    x: projectile.position.x + projectile.direction.x * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : NORMAL_PROJECTILE_SPEED) * (deltaTime / 16.667),
+                    y: projectile.position.y + projectile.direction.y * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : NORMAL_PROJECTILE_SPEED) * (deltaTime / 16.667)
                 }
             }));
 
             return updated.filter(projectile => (
                 projectile.position.x >= 0 &&
-                projectile.position.x <= GAME_WIDTH &&
+                projectile.position.x <= VIEWPORT_WIDTH &&
                 projectile.position.y >= 0 &&
-                projectile.position.y <= GAME_HEIGHT
+                projectile.position.y <= VIEWPORT_HEIGHT
             ));
         });
 
-        setProjectiles(prev => {
+        setActiveProjectiles(prev => {
             const remaining = [...prev];
             const toRemove = new Set<string>();
 
             remaining.forEach(projectile => {
                 enemies.forEach(enemy => {
-                    const dx = enemy.position.x - projectile.position.x;
-                    const dy = enemy.position.y - projectile.position.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const distanceX = enemy.position.x - projectile.position.x;
+                    const distanceY = enemy.position.y - projectile.position.y;
+                    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 
                     if (distance < 20) {
-                        if (enemy.health - (projectile.isCharged ? CHARGED_DAMAGE : DEBUG_DAMAGE) <= 0) {
-                            dispatch(damagePlayer(-SANITY_GAIN_ON_KILL)); // Heal on kill
+                        if (enemy.health - (projectile.isCharged ? CHARGED_PROJECTILE_DAMAGE : NORMAL_PROJECTILE_DAMAGE) <= 0) {
+                            dispatch(damagePlayer(-HEALTH_RESTORE_ON_KILL));
                         }
                         dispatch(damageEnemy({
                             id: enemy.id,
-                            damage: projectile.isCharged ? CHARGED_DAMAGE : DEBUG_DAMAGE
+                            damage: projectile.isCharged ? CHARGED_PROJECTILE_DAMAGE : NORMAL_PROJECTILE_DAMAGE
                         }));
                         if (!projectile.piercing) {
                             toRemove.add(projectile.id);
@@ -227,25 +264,25 @@ const Game: React.FC = () => {
             return remaining.filter(projectile => !toRemove.has(projectile.id));
         });
 
-        lastUpdateTime.current = timestamp;
+        lastFrameTimestamp.current = timestamp;
         if (gameStatus === 'playing') {
-            animationFrameId.current = requestAnimationFrame(gameLoop);
+            frameRequestId.current = requestAnimationFrame(gameLoop);
         }
-    }, [moveCharacter, enemies, dispatch, checkEnemyCollisions, gameStatus]);
+    }, [updatePlayerPosition, updateEnemyPositions, enemies, dispatch, detectCollisions, gameStatus]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 e.preventDefault();
             }
-            keysPressed.current[e.key] = true;
+            activeKeys.current[e.key] = true;
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            delete keysPressed.current[e.key];
+            delete activeKeys.current[e.key];
 
             const movementKeys = ['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
-            const isAnyMovementKeyPressed = movementKeys.some(key => keysPressed.current[key]);
+            const isAnyMovementKeyPressed = movementKeys.some(key => activeKeys.current[key]);
 
             if (!isAnyMovementKeyPressed) {
                 setIsMoving(false);
@@ -253,7 +290,7 @@ const Game: React.FC = () => {
         };
 
         const handleBlur = () => {
-            keysPressed.current = {};
+            activeKeys.current = {};
             setIsMoving(false);
         };
 
@@ -262,10 +299,10 @@ const Game: React.FC = () => {
         };
 
         const handleMouseDown = (e: MouseEvent) => {
-            if (e.button === 2) { // Right click
-                handleDash();
-            } else if (e.button === 0) { // Left click
-                startCharge(e);
+            if (e.button === 2) {
+                activateDash();
+            } else if (e.button === 0) {
+                startProjectileCharge(e);
             }
         };
 
@@ -273,33 +310,33 @@ const Game: React.FC = () => {
         window.addEventListener('keyup', handleKeyUp);
         window.addEventListener('blur', handleBlur);
         window.addEventListener('mousedown', handleMouseDown);
-        window.addEventListener('mouseup', releaseCharge);
+        window.addEventListener('mouseup', releaseProjectile);
         window.addEventListener('contextmenu', handleContextMenu);
 
         if (gameStatus === 'playing') {
-            animationFrameId.current = requestAnimationFrame(gameLoop);
+            frameRequestId.current = requestAnimationFrame(gameLoop);
         }
 
         return () => {
-            if (animationFrameId.current) {
-                cancelAnimationFrame(animationFrameId.current);
+            if (frameRequestId.current) {
+                cancelAnimationFrame(frameRequestId.current);
             }
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('blur', handleBlur);
             window.removeEventListener('mousedown', handleMouseDown);
-            window.removeEventListener('mouseup', releaseCharge);
+            window.removeEventListener('mouseup', releaseProjectile);
             window.removeEventListener('contextmenu', handleContextMenu);
         };
-    }, [gameLoop, handleDash, startCharge, releaseCharge, gameStatus]);
+    }, [gameLoop, activateDash, startProjectileCharge, releaseProjectile, gameStatus]);
 
     return (
         <div className="app">
             <div className="game-container">
                 <HUD />
                 <div className="game-board">
-                    {gameStatus === 'menu' && <Menu onStartGame={startGame} />}
-                    {gameStatus === 'gameOver' && <Lose onRestart={restartGame} />}
+                    {gameStatus === 'menu' && <Menu onStartGame={initializeGame} />}
+                    {gameStatus === 'gameOver' && <Lose onRestart={resetGameState} />}
                     {gameStatus === 'playing' && (
                         <>
                             <div
@@ -312,7 +349,7 @@ const Game: React.FC = () => {
                                 }}
                             />
 
-                            {projectiles.map(projectile => (
+                            {activeProjectiles.map(projectile => (
                                 <div
                                     key={projectile.id}
                                     className={`projectile debug-shot ${projectile.isCharged ? 'charged' : ''}`}

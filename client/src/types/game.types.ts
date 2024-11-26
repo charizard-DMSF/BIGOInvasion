@@ -1,3 +1,5 @@
+export type GameStatus = 'menu' | 'playing' | 'paused' | 'gameOver';
+
 export interface Position {
     x: number;
     y: number;
@@ -7,7 +9,7 @@ export interface Enemy {
     id: string;
     position: Position;
     health: number;
-    complexity: number;  // Represents the O(n) complexity level
+    complexity: number; // Represents the O(n) complexity level
     type: string;
     speed?: number;
 }
@@ -15,7 +17,7 @@ export interface Enemy {
 export interface Projectile {
     id: string;
     position: Position;
-    direction: Position;  // Normalized vector for direction
+    direction: Position; // Normalized vector for direction
     speed: number;
 }
 
@@ -27,7 +29,7 @@ export interface GameState {
     playerHealth: number;
     enemies: Enemy[];
     projectiles: Projectile[];
-    gameStatus: 'playing' | 'paused' | 'gameOver';
+    gameStatus: GameStatus;
 }
 
 export interface LevelConfig {
@@ -45,7 +47,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
         complexity: 'O(1)',
         enemyCount: 5,
         wavesCount: 3,
-        calculateDamage: () => 1  // Always takes 1 shot
+        calculateDamage: () => 1 // Always takes 1 shot
     },
     2: {
         name: 'Logarithmic Time',
