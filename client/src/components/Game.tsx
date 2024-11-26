@@ -9,7 +9,11 @@ import HUD from './HUD';
 import Menu from './Menu';
 import Lose from './Lose';
 import { useEnemySpawner } from '../hooks/useEnemySpawner';
-import { checkPlayerEnemyCollision } from '../utils/collision';
+import {
+    checkPlayerEnemyCollision,
+    checkProjectileEnemyCollision,
+    isInBounds
+} from '../utils/collision';
 
 // game board dimensions in pixels
 const VIEWPORT_WIDTH = 1200;
@@ -220,20 +224,21 @@ const Game: React.FC = () => {
         detectCollisions();
 
         setActiveProjectiles(prev => {
-            const updated = prev.map(projectile => ({
-                ...projectile,
-                position: {
-                    x: projectile.position.x + projectile.direction.x * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : NORMAL_PROJECTILE_SPEED) * (deltaTime / 16.667),
-                    y: projectile.position.y + projectile.direction.y * (projectile.isCharged ? CHARGED_PROJECTILE_SPEED : NORMAL_PROJECTILE_SPEED) * (deltaTime / 16.667)
-                }
-            }));
+            const updated = prev.map(projectile => {
+                const speed = projectile.isCharged ? CHARGED_PROJECTILE_SPEED : NORMAL_PROJECTILE_SPEED;
+                const newPosition = {
+                    x: projectile.position.x + projectile.direction.x * speed * (deltaTime / 16.667),
+                    y: projectile.position.y + projectile.direction.y * speed * (deltaTime / 16.667)
+                };
+                return {
+                    ...projectile,
+                    position: newPosition
+                };
+            });
 
-            return updated.filter(projectile => (
-                projectile.position.x >= 0 &&
-                projectile.position.x <= VIEWPORT_WIDTH &&
-                projectile.position.y >= 0 &&
-                projectile.position.y <= VIEWPORT_HEIGHT
-            ));
+            return updated.filter(projectile =>
+                isInBounds(projectile.position, { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT })
+            );
         });
 
         setActiveProjectiles(prev => {
@@ -242,11 +247,7 @@ const Game: React.FC = () => {
 
             remaining.forEach(projectile => {
                 enemies.forEach(enemy => {
-                    const distanceX = enemy.position.x - projectile.position.x;
-                    const distanceY = enemy.position.y - projectile.position.y;
-                    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-                    if (distance < 20) {
+                    if (checkProjectileEnemyCollision(projectile, enemy)) {
                         if (enemy.health - (projectile.isCharged ? CHARGED_PROJECTILE_DAMAGE : NORMAL_PROJECTILE_DAMAGE) <= 0) {
                             dispatch(damagePlayer(-HEALTH_RESTORE_ON_KILL));
                         }
