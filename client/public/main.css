@@ -1,0 +1,50 @@
+* {
+  margin: 0;
+}
+
+nav {
+  display: flex;
+  justify-content: end;
+  /* margin-bottom: 5rem; */
+}
+
+ul {
+  display: flex;
+  justify-content: space-evenly;
+  padding: 1rem;
+  gap: 1rem;
+  list-style: none;
+}
+
+ul li {
+  text-decoration: none;
+}
+
+body {
+  margin: 0 10rem;
+}
+
+.menu {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 5rem;
+}
+
+.menu-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: center;
+  gap: 2rem;
+  max-width: 15rem;
+}
+
+.link {
+  padding: 1rem;
+  text-decoration: none;
+}
+
+button:hover {
+  cursor: pointer;
+}
