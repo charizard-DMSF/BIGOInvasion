@@ -5,25 +5,38 @@ export interface Position {
     y: number;
 }
 
+export enum EnemyType {
+    Basic = 'basic',
+    Fast = 'fast',
+    Tank = 'tank',
+}
+
 export interface Enemy {
     id: string;
     position: Position;
     health: number;
-    complexity: number; // Represents the O(n) complexity level
-    type: string;
-    speed?: number;
+    type: EnemyType;
+    speed: number;
 }
 
 export interface Projectile {
     id: string;
     position: Position;
-    direction: Position; // Normalized vector for direction
-    speed: number;
+    direction: Position;
+    isCharged: boolean;
+    piercing: boolean;
+}
+
+export interface Wave {
+    number: number;
+    enemyCount: number;
+    enemiesSpawned: number;
+    enemiesDefeated: number;
 }
 
 export interface GameState {
     level: number;
-    wave: number;
+    wave: Wave;
     score: number;
     playerPosition: Position;
     playerHealth: number;
@@ -32,11 +45,10 @@ export interface GameState {
     gameStatus: GameStatus;
 }
 
-export interface LevelConfig {
-    name: string;
-    complexity: string;
-    enemyCount: number;
-    wavesCount: number;
-    calculateDamage: (wave: number) => number;
+export interface GameStats {
+    accuracy: number;
+    killCount: number;
+    damageDone: number;
+    damageTaken: number;
+    timeElapsed: number;
 }
-

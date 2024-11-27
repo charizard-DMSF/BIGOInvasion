@@ -1,47 +1,79 @@
-import { useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+// useEnemySpawner.ts
+import { useCallback, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuidv4 } from 'uuid';
-import { addEnemy } from '../store/gameSlice';
-import { Position } from '../types/game.types';
-
-const SPAWN_INTERVAL = 2000; // Spawn enemy every 2 seconds
-const GAME_WIDTH = 800;
-const GAME_HEIGHT = 600;
+import { addEnemy, updateWave } from '../store/gameSlice';
+import { Position, Enemy, EnemyType } from '../types/game.types';
+import { PLAYER, ENEMY, VIEWPORT } from '../config/constants';
+import type { RootState } from '../store';
 
 export const useEnemySpawner = () => {
     const dispatch = useDispatch();
+    const spawnTimerRef = useRef<NodeJS.Timeout>();
+    const { gameStatus, wave } = useSelector((state: RootState) => state.game);
 
     const getRandomSpawnPosition = (): Position => {
         const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        const margin = ENEMY.SIZE * 2;
 
         switch (edge) {
             case 0: // top
-                return { x: Math.random() * GAME_WIDTH, y: -30 };
+                return { x: Math.random() * VIEWPORT.WIDTH, y: -margin };
             case 1: // right
-                return { x: GAME_WIDTH + 30, y: Math.random() * GAME_HEIGHT };
+                return { x: VIEWPORT.WIDTH + margin, y: Math.random() * VIEWPORT.HEIGHT };
             case 2: // bottom
-                return { x: Math.random() * GAME_WIDTH, y: GAME_HEIGHT + 30 };
+                return { x: Math.random() * VIEWPORT.WIDTH, y: VIEWPORT.HEIGHT + margin };
             default: // left
-                return { x: -30, y: Math.random() * GAME_HEIGHT };
+                return { x: -margin, y: Math.random() * VIEWPORT.HEIGHT };
+        }
+    };
+
+    const getEnemyType = (waveNumber: number): EnemyType => {
+        const roll = Math.random();
+        if (waveNumber >= 5 && roll > 0.8) return EnemyType.Tank;
+        if (waveNumber >= 3 && roll > 0.6) return EnemyType.Fast;
+        return EnemyType.Basic;
+    };
+
+    const getEnemyStats = (type: EnemyType): Pick<Enemy, 'health' | 'speed'> => {
+        switch (type) {
+            case EnemyType.Fast:
+                return { health: ENEMY.BASE_HEALTH * 0.7, speed: ENEMY.BASE_SPEED * 1.5 };
+            case EnemyType.Tank:
+                return { health: ENEMY.BASE_HEALTH * 2, speed: ENEMY.BASE_SPEED * 0.7 };
+            default:
+                return { health: ENEMY.BASE_HEALTH, speed: ENEMY.BASE_SPEED };
         }
     };
 
     const spawnEnemy = useCallback(() => {
-        const spawnPosition = getRandomSpawnPosition();
+        if (wave.enemiesSpawned >= wave.enemyCount) {
+            dispatch(updateWave());
+            return;
+        }
 
-        const enemy = {
+        const type = getEnemyType(wave.number);
+        const stats = getEnemyStats(type);
+
+        const enemy: Enemy = {
             id: uuidv4(),
-            position: spawnPosition,
-            health: 100,
-            type: 'basic',
-            speed: 2
+            position: getRandomSpawnPosition(),
+            type,
+            ...stats,
         };
 
         dispatch(addEnemy(enemy));
-    }, [dispatch]);
+    }, [dispatch, wave]);
 
     useEffect(() => {
-        const spawnInterval = setInterval(spawnEnemy, SPAWN_INTERVAL);
-        return () => clearInterval(spawnInterval);
-    }, [spawnEnemy]);
+        if (gameStatus === 'playing') {
+            spawnTimerRef.current = setInterval(spawnEnemy, ENEMY.SPAWN_INTERVAL);
+        }
+
+        return () => {
+            if (spawnTimerRef.current) {
+                clearInterval(spawnTimerRef.current);
+            }
+        };
+    }, [spawnEnemy, gameStatus]);
 };

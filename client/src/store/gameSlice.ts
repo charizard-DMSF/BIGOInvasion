@@ -1,20 +1,29 @@
+// gameSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { GameState, Position, Enemy } from '../types/game.types';
+import { GameState, Position, Enemy, Projectile, GameStatus, Wave } from '../types/game.types';
+import { PLAYER, ENEMY, VIEWPORT } from '../config/constants';
 
 interface DamageEnemyPayload {
     id: string;
     damage: number;
 }
 
+const initialWave: Wave = {
+    number: 1,
+    enemyCount: 10,
+    enemiesSpawned: 0,
+    enemiesDefeated: 0
+};
+
 const initialState: GameState = {
     level: 1,
+    wave: initialWave,
     score: 0,
-    playerPosition: { x: 600, y: 400 },
-    playerHealth: 100,
+    playerPosition: { x: VIEWPORT.WIDTH / 2, y: VIEWPORT.HEIGHT / 2 },
+    playerHealth: PLAYER.MAX_HEALTH,
     enemies: [],
-    projectiles: [], 
+    projectiles: [],
     gameStatus: 'menu',
-    wave: 1
 };
 
 const gameSlice = createSlice({
@@ -26,30 +35,22 @@ const gameSlice = createSlice({
         },
         addEnemy(state, action: PayloadAction<Enemy>) {
             state.enemies.push(action.payload);
-        },
-        removeEnemy(state, action: PayloadAction<string>) {
-            state.enemies = state.enemies.filter(enemy => enemy.id !== action.payload);
+            state.wave.enemiesSpawned++;
         },
         updateEnemies(state, action: PayloadAction<Enemy[]>) {
             state.enemies = action.payload;
         },
-        updateScore(state, action: PayloadAction<number>) {
-            state.score += action.payload;
+        addProjectile(state, action: PayloadAction<Projectile>) {
+            state.projectiles.push(action.payload);
         },
-        setLevel(state, action: PayloadAction<number>) {
-            state.level = action.payload;
-        },
-        setGameStatus(state, action: PayloadAction<'menu' | 'playing' | 'gameOver'>) {
-            state.gameStatus = action.payload;
-        },
-        resetGame(state) {
-            return {
-                ...initialState,
-                gameStatus: 'playing'
-            };
+        updateProjectiles(state, action: PayloadAction<Projectile[]>) {
+            state.projectiles = action.payload;
         },
         damagePlayer(state, action: PayloadAction<number>) {
-            const newHealth = Math.min(100, Math.max(0, state.playerHealth - action.payload));
+            const newHealth = Math.min(
+                PLAYER.MAX_HEALTH,
+                Math.max(0, state.playerHealth - action.payload)
+            );
             state.playerHealth = newHealth;
             if (newHealth === 0) {
                 state.gameStatus = 'gameOver';
@@ -61,24 +62,41 @@ const gameSlice = createSlice({
                 enemy.health -= action.payload.damage;
                 if (enemy.health <= 0) {
                     state.enemies = state.enemies.filter(e => e.id !== action.payload.id);
-                    state.score += 100;
+                    state.score += ENEMY.SCORE_VALUE;
+                    state.wave.enemiesDefeated++;
                 }
             }
-        }
-    }
+        },
+        updateWave(state) {
+            const { enemiesDefeated, enemyCount } = state.wave;
+            if (enemiesDefeated >= enemyCount) {
+                state.wave = {
+                    number: state.wave.number + 1,
+                    enemyCount: Math.floor(enemyCount * 1.5),
+                    enemiesSpawned: 0,
+                    enemiesDefeated: 0
+                };
+                state.level = Math.floor(state.wave.number / 5) + 1;
+            }
+        }, 
+        setGameStatus(state, action: PayloadAction<GameStatus>) {
+            state.gameStatus = action.payload;
+        }, 
+        resetGame: () => initialState,
+    },
 });
 
 export const {
     movePlayer,
     addEnemy,
-    removeEnemy,
     updateEnemies,
-    updateScore,
-    setLevel,
+    addProjectile,
+    updateProjectiles,
     damagePlayer,
     damageEnemy,
+    updateWave,
     setGameStatus,
-    resetGame
+    resetGame,
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

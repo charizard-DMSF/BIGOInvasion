@@ -1,7 +1,16 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { movePlayer, damageEnemy, damagePlayer, setGameStatus, resetGame, updateEnemies } from '../store/gameSlice';
+import {
+    movePlayer,
+    damageEnemy,
+    damagePlayer,
+    setGameStatus,
+    resetGame,
+    updateEnemies,
+    addProjectile,
+    updateProjectiles
+} from '../store/gameSlice';
 import { v4 as uuidv4 } from 'uuid';
 import Player from './Player';
 import Enemy from './Enemy';
@@ -9,59 +18,32 @@ import HUD from './HUD';
 import Menu from './Menu';
 import Lose from './Lose';
 import { useEnemySpawner } from '../hooks/useEnemySpawner';
-import {
-    checkPlayerEnemyCollision,
-    checkProjectileEnemyCollision,
-    isInBounds
-} from '../utils/collision';
-
-// game board dimensions in pixels
-const VIEWPORT_WIDTH = 1200;
-const VIEWPORT_HEIGHT = 800;
-
-// player movement settings
-const PLAYER_BASE_SPEED = 8;
-const DASH_SPEED_MULTIPLIER = 2.5;
-const DASH_DURATION_MS = 150;
-
-// projectile configuration
-const NORMAL_PROJECTILE_SPEED = 12;
-const CHARGED_PROJECTILE_SPEED = 15;
-const NORMAL_PROJECTILE_DAMAGE = 25;
-const CHARGED_PROJECTILE_DAMAGE = 75;
-const CHARGE_TIME_MS = 1000;
-
-// enemy interaction settings
-const ENEMY_COLLISION_DAMAGE = 10;
-const COLLISION_IMMUNITY_DURATION_MS = 1000;
-const HEALTH_RESTORE_ON_KILL = 2;
-const ENEMY_MOVEMENT_SPEED = 2;
-
-// projectile entity definition that represents a single projectile in the game
-interface Projectile {
-    id: string;
-    position: { x: number; y: number };
-    direction: { x: number; y: number };
-    isCharged?: boolean;
-    piercing?: boolean;
-}
+import { checkPlayerEnemyCollision, checkProjectileEnemyCollision, isInBounds } from '../utils/collision';
+import { Position, Projectile } from '../types/game.types';
+import { VIEWPORT, PLAYER, PROJECTILE, ENEMY } from '../config/constants';
+import { ErrorBoundary } from './ErrorBoundary';
 
 const Game: React.FC = () => {
     const dispatch = useDispatch();
-    const { playerPosition, enemies, playerHealth: sanityLevel, gameStatus } = useSelector((state: RootState) => state.game);
+    const {
+        playerPosition,
+        enemies,
+        projectiles,
+        playerHealth,
+        gameStatus
+    } = useSelector((state: RootState) => state.game);
 
-    // input state tracking
+    // Input state tracking
     const activeKeys = useRef<{ [key: string]: boolean }>({});
 
-    // player state
+    // Player state
     const [isDashing, setIsDashing] = useState(false);
     const [canDash, setCanDash] = useState(true);
     const [isMoving, setIsMoving] = useState(false);
     const [isCharging, setIsCharging] = useState(false);
     const [chargeStartTimestamp, setChargeStartTimestamp] = useState(0);
 
-    // game state tracking
-    const [activeProjectiles, setActiveProjectiles] = useState<Projectile[]>([]);
+    // Game state tracking
     const lastFrameTimestamp = useRef<number>(0);
     const lastDamageTimestamp = useRef<number>(0);
     const frameRequestId = useRef<number>();
@@ -76,7 +58,6 @@ const Game: React.FC = () => {
     const resetGameState = useCallback(() => {
         dispatch(resetGame());
         dispatch(setGameStatus('playing'));
-        setActiveProjectiles([]);
         setIsDashing(false);
         setCanDash(true);
         setIsMoving(false);
@@ -107,15 +88,23 @@ const Game: React.FC = () => {
             verticalMovement /= Math.sqrt(2);
         }
 
-        const currentSpeed = PLAYER_BASE_SPEED * (isDashing ? DASH_SPEED_MULTIPLIER : 1);
+        const currentSpeed = PLAYER.BASE_SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
         horizontalMovement *= currentSpeed * (deltaTime / 16.667);
         verticalMovement *= currentSpeed * (deltaTime / 16.667);
 
-        const newX = Math.max(0, Math.min(VIEWPORT_WIDTH - 32, playerPosition.x + horizontalMovement));
-        const newY = Math.max(0, Math.min(VIEWPORT_HEIGHT - 32, playerPosition.y + verticalMovement));
+        const newX = Math.max(
+            PLAYER.SIZE / 2,
+            Math.min(VIEWPORT.WIDTH - PLAYER.SIZE / 2, playerPosition.x + horizontalMovement)
+        );
+        const newY = Math.max(
+            PLAYER.SIZE / 2,
+            Math.min(VIEWPORT.HEIGHT - PLAYER.SIZE / 2, playerPosition.y + verticalMovement)
+        );
 
         dispatch(movePlayer({ x: newX, y: newY }));
     }, [dispatch, playerPosition, isDashing, gameStatus]);
+
+    // Continuing from previous Game.tsx...
 
     const updateEnemyPositions = useCallback((deltaTime: number) => {
         if (!enemies.length || gameStatus !== 'playing') return;
@@ -127,9 +116,11 @@ const Game: React.FC = () => {
 
             if (totalDistance === 0) return enemy;
 
-            const speed = ENEMY_MOVEMENT_SPEED * (deltaTime / 16.667);
-            const newX = enemy.position.x + (distanceX / totalDistance) * speed;
-            const newY = enemy.position.y + (distanceY / totalDistance) * speed;
+            const normalizedX = distanceX / totalDistance;
+            const normalizedY = distanceY / totalDistance;
+
+            const newX = enemy.position.x + (normalizedX * enemy.speed * deltaTime / 16.667);
+            const newY = enemy.position.y + (normalizedY * enemy.speed * deltaTime / 16.667);
 
             return {
                 ...enemy,
@@ -144,14 +135,15 @@ const Game: React.FC = () => {
         if (gameStatus !== 'playing') return;
 
         const currentTime = Date.now();
-        if (currentTime - lastDamageTimestamp.current < COLLISION_IMMUNITY_DURATION_MS) return;
+        if (currentTime - lastDamageTimestamp.current < ENEMY.COLLISION_IMMUNITY_DURATION_MS) return;
 
-        enemies.forEach(enemy => {
+        for (const enemy of enemies) {
             if (checkPlayerEnemyCollision(playerPosition, enemy)) {
-                dispatch(damagePlayer(ENEMY_COLLISION_DAMAGE));
+                dispatch(damagePlayer(ENEMY.COLLISION_DAMAGE));
                 lastDamageTimestamp.current = currentTime;
+                break;
             }
-        });
+        }
     }, [enemies, playerPosition, dispatch, gameStatus]);
 
     const activateDash = useCallback(() => {
@@ -162,11 +154,11 @@ const Game: React.FC = () => {
 
         setTimeout(() => {
             setIsDashing(false);
-        }, DASH_DURATION_MS);
+        }, PLAYER.DASH_DURATION_MS);
 
         setTimeout(() => {
             setCanDash(true);
-        }, DASH_DURATION_MS * 3);
+        }, PLAYER.DASH_DURATION_MS + PLAYER.DASH_COOLDOWN_MS);
     }, [canDash, gameStatus]);
 
     const startProjectileCharge = useCallback((e: MouseEvent) => {
@@ -179,37 +171,96 @@ const Game: React.FC = () => {
     }, [gameStatus]);
 
     const releaseProjectile = useCallback((e: MouseEvent) => {
+        if (gameStatus !== 'playing' || !isCharging) return;
+
+        const chargeTime = Date.now() - chargeStartTimestamp;
+        const isFullyCharged = chargeTime >= PROJECTILE.CHARGED.CHARGE_TIME_MS;
+
+        const gameBoard = document.querySelector('.game-board');
+        if (!gameBoard) return;
+
+        const boardRect = gameBoard.getBoundingClientRect();
+        const mouseX = e.clientX - boardRect.left;
+        const mouseY = e.clientY - boardRect.top;
+
+        const directionX = mouseX - playerPosition.x;
+        const directionY = mouseY - playerPosition.y;
+        const distance = Math.sqrt(directionX * directionX + directionY * directionY);
+
+        const projectile: Projectile = {
+            id: uuidv4(),
+            position: { ...playerPosition },
+            direction: {
+                x: directionX / distance,
+                y: directionY / distance
+            },
+            isCharged: isFullyCharged,
+            piercing: isFullyCharged
+        };
+
+        dispatch(addProjectile(projectile));
+        setIsCharging(false);
+    }, [isCharging, chargeStartTimestamp, playerPosition, gameStatus, dispatch]);
+
+    const updateProjectilePositions = useCallback((deltaTime: number) => {
         if (gameStatus !== 'playing') return;
 
-        if (e.button === 0 && isCharging) {
-            const chargeTime = Date.now() - chargeStartTimestamp;
-            const isFullyCharged = chargeTime >= CHARGE_TIME_MS;
+        dispatch(updateProjectiles(
+            projectiles
+                .map(projectile => {
+                    const speed = projectile.isCharged
+                        ? PROJECTILE.CHARGED.SPEED
+                        : PROJECTILE.NORMAL.SPEED;
 
-            const gameBoard = document.querySelector('.game-board');
-            if (!gameBoard) return;
-            const boardRect = gameBoard.getBoundingClientRect();
+                    const newPosition = {
+                        x: projectile.position.x + projectile.direction.x * speed * (deltaTime / 16.667),
+                        y: projectile.position.y + projectile.direction.y * speed * (deltaTime / 16.667)
+                    };
 
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
-            const directionX = mouseX - (boardRect.left + playerPosition.x);
-            const directionY = mouseY - (boardRect.top + playerPosition.y);
-            const distance = Math.sqrt(directionX * directionX + directionY * directionY);
+                    return { ...projectile, position: newPosition };
+                })
+                .filter(projectile =>
+                    isInBounds(projectile.position, {
+                        width: VIEWPORT.WIDTH,
+                        height: VIEWPORT.HEIGHT
+                    })
+                )
+        ));
 
-            const projectile = {
-                id: uuidv4(),
-                position: { ...playerPosition },
-                direction: {
-                    x: directionX / distance,
-                    y: directionY / distance
-                },
-                isCharged: isFullyCharged,
-                piercing: isFullyCharged
-            };
+        // Handle projectile collisions
+        const remainingProjectiles = [...projectiles];
+        const projectilesToRemove = new Set<string>();
 
-            setActiveProjectiles(prev => [...prev, projectile]);
-            setIsCharging(false);
+        for (const projectile of remainingProjectiles) {
+            for (const enemy of enemies) {
+                if (checkProjectileEnemyCollision(projectile, enemy)) {
+                    const damage = projectile.isCharged
+                        ? PROJECTILE.CHARGED.DAMAGE
+                        : PROJECTILE.NORMAL.DAMAGE;
+
+                    if (enemy.health - damage <= 0) {
+                        dispatch(damagePlayer(-ENEMY.HEALTH_RESTORE_ON_KILL));
+                    }
+
+                    dispatch(damageEnemy({
+                        id: enemy.id,
+                        damage: damage
+                    }));
+
+                    if (!projectile.piercing) {
+                        projectilesToRemove.add(projectile.id);
+                        break;
+                    }
+                }
+            }
         }
-    }, [isCharging, chargeStartTimestamp, playerPosition, gameStatus]);
+
+        if (projectilesToRemove.size > 0) {
+            dispatch(updateProjectiles(
+                remainingProjectiles.filter(p => !projectilesToRemove.has(p.id))
+            ));
+        }
+    }, [projectiles, enemies, gameStatus, dispatch]);
 
     const gameLoop = useCallback((timestamp: number) => {
         if (gameStatus !== 'playing') return;
@@ -219,57 +270,21 @@ const Game: React.FC = () => {
         }
 
         const deltaTime = timestamp - lastFrameTimestamp.current;
+
         updatePlayerPosition(deltaTime);
         updateEnemyPositions(deltaTime);
+        updateProjectilePositions(deltaTime);
         detectCollisions();
 
-        setActiveProjectiles(prev => {
-            const updated = prev.map(projectile => {
-                const speed = projectile.isCharged ? CHARGED_PROJECTILE_SPEED : NORMAL_PROJECTILE_SPEED;
-                const newPosition = {
-                    x: projectile.position.x + projectile.direction.x * speed * (deltaTime / 16.667),
-                    y: projectile.position.y + projectile.direction.y * speed * (deltaTime / 16.667)
-                };
-                return {
-                    ...projectile,
-                    position: newPosition
-                };
-            });
-
-            return updated.filter(projectile =>
-                isInBounds(projectile.position, { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT })
-            );
-        });
-
-        setActiveProjectiles(prev => {
-            const remaining = [...prev];
-            const toRemove = new Set<string>();
-
-            remaining.forEach(projectile => {
-                enemies.forEach(enemy => {
-                    if (checkProjectileEnemyCollision(projectile, enemy)) {
-                        if (enemy.health - (projectile.isCharged ? CHARGED_PROJECTILE_DAMAGE : NORMAL_PROJECTILE_DAMAGE) <= 0) {
-                            dispatch(damagePlayer(-HEALTH_RESTORE_ON_KILL));
-                        }
-                        dispatch(damageEnemy({
-                            id: enemy.id,
-                            damage: projectile.isCharged ? CHARGED_PROJECTILE_DAMAGE : NORMAL_PROJECTILE_DAMAGE
-                        }));
-                        if (!projectile.piercing) {
-                            toRemove.add(projectile.id);
-                        }
-                    }
-                });
-            });
-
-            return remaining.filter(projectile => !toRemove.has(projectile.id));
-        });
-
         lastFrameTimestamp.current = timestamp;
-        if (gameStatus === 'playing') {
-            frameRequestId.current = requestAnimationFrame(gameLoop);
-        }
-    }, [updatePlayerPosition, updateEnemyPositions, enemies, dispatch, detectCollisions, gameStatus]);
+        frameRequestId.current = requestAnimationFrame(gameLoop);
+    }, [
+        updatePlayerPosition,
+        updateEnemyPositions,
+        updateProjectilePositions,
+        detectCollisions,
+        gameStatus
+    ]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -281,11 +296,9 @@ const Game: React.FC = () => {
 
         const handleKeyUp = (e: KeyboardEvent) => {
             delete activeKeys.current[e.key];
-
-            const movementKeys = ['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
-            const isAnyMovementKeyPressed = movementKeys.some(key => activeKeys.current[key]);
-
-            if (!isAnyMovementKeyPressed) {
+            if (!Object.keys(activeKeys.current).some(key =>
+                ['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)
+            )) {
                 setIsMoving(false);
             }
         };
@@ -293,14 +306,16 @@ const Game: React.FC = () => {
         const handleBlur = () => {
             activeKeys.current = {};
             setIsMoving(false);
+            setIsCharging(false);
         };
 
-        const handleContextMenu = (e: MouseEvent) => {
+        const handleContextMenu = (e: Event) => {
             e.preventDefault();
         };
 
         const handleMouseDown = (e: MouseEvent) => {
             if (e.button === 2) {
+                e.preventDefault();
                 activateDash();
             } else if (e.button === 0) {
                 startProjectileCharge(e);
@@ -332,45 +347,44 @@ const Game: React.FC = () => {
     }, [gameLoop, activateDash, startProjectileCharge, releaseProjectile, gameStatus]);
 
     return (
-        <div className="app">
-            <div className="game-container">
-                <HUD />
-                <div className="game-board">
-                    {gameStatus === 'menu' && <Menu onStartGame={initializeGame} />}
-                    {gameStatus === 'gameOver' && <Lose onRestart={resetGameState} />}
-                    {gameStatus === 'playing' && (
-                        <>
-                            <div
-                                className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
-                                style={{
-                                    left: `${playerPosition.x}px`,
-                                    top: `${playerPosition.y}px`,
-                                    transition: isDashing ? 'none' : 'none',
-                                    filter: isDashing ? 'brightness(1.5) drop-shadow(0 0 15px #00ff00)' : 'none'
-                                }}
-                            />
+        <ErrorBoundary>
+            <div className="app">
+                <div className="game-container">
+                    <HUD />
+                    <div className="game-board">
+                        {gameStatus === 'menu' && <Menu onStartGame={initializeGame} />}
+                        {gameStatus === 'gameOver' && <Lose onRestart={resetGameState} />}
+                        {gameStatus === 'playing' && (
+                            <>
+                                <Player
+                                    position={playerPosition}
+                                    isMoving={isMoving}
+                                    isDashing={isDashing}
+                                    isCharging={isCharging}
+                                />
 
-                            {activeProjectiles.map(projectile => (
-                                <div
-                                    key={projectile.id}
-                                    className={`projectile debug-shot ${projectile.isCharged ? 'charged' : ''}`}
-                                    style={{
-                                        left: `${projectile.position.x}px`,
-                                        top: `${projectile.position.y}px`
-                                    }}
-                                >
-                                    {projectile.isCharged ? 'console.error()' : 'console.log()'}
-                                </div>
-                            ))}
+                                {projectiles.map(projectile => (
+                                    <div
+                                        key={projectile.id}
+                                        className={`projectile debug-shot ${projectile.isCharged ? 'charged' : ''}`}
+                                        style={{
+                                            left: `${projectile.position.x}px`,
+                                            top: `${projectile.position.y}px`
+                                        }}
+                                    >
+                                        {projectile.isCharged ? 'console.error()' : 'console.log()'}
+                                    </div>
+                                ))}
 
-                            {enemies.map((enemy) => (
-                                <Enemy key={enemy.id} {...enemy} />
-                            ))}
-                        </>
-                    )}
+                                {enemies.map((enemy) => (
+                                    <Enemy key={enemy.id} {...enemy} />
+                                ))}
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
+        </ErrorBoundary>
     );
 };
 
