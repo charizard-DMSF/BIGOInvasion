@@ -12,8 +12,8 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.jsx', '.js'],
     alias: {
-      '@': path.resolve(__dirname, 'client/src')
-    }
+      '@': path.resolve(__dirname, 'client/src'),
+    },
   },
   module: {
     rules: [
@@ -23,13 +23,17 @@ module.exports = {
         use: {
           loader: 'ts-loader',
           options: {
-            transpileOnly: true
-          }
-        }
+            transpileOnly: true,
+          },
+        },
       },
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.png$/,
+        type: 'asset/resource',
       },
     ],
   },

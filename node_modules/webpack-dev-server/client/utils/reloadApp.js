@@ -16,7 +16,7 @@ function reloadApp(_ref, status) {
   }
   var currentHash = status.currentHash,
     previousHash = status.previousHash;
-  var isInitial = currentHash.indexOf( /** @type {string} */previousHash) >= 0;
+  var isInitial = currentHash.indexOf(/** @type {string} */previousHash) >= 0;
   if (isInitial) {
     return;
   }

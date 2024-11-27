@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "ES6",
+    "target": "ES5",
+    "outDir": "./dist/",
+    "noImplicitAny": true,
+    "jsx": "react",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "moduleResolution": "Node"
+  },
+  "include": ["client/src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
