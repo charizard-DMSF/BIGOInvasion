@@ -7,7 +7,7 @@
     "start": "webpack serve --open",
     "build": "webpack --mode production"
   },
-  "author": "",
+  "author": "Matthew Elson, Stephany Ho, Felipe Valencia, Daniel Koch",
   "license": "ISC",
   "dependencies": {
     "@reduxjs/toolkit": "^2.3.0",
