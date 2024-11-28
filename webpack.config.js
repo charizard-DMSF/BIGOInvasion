@@ -1,7 +1,11 @@
-const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+import path from 'path';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
 
-module.exports = {
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url); 
+const __dirname = path.dirname(__filename);
+
+export default {
   entry: './client/src/index.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -12,8 +16,8 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.jsx', '.js'],
     alias: {
-      '@': path.resolve(__dirname, 'client/src')
-    }
+      '@': path.resolve(__dirname, 'client/src'),
+    },
   },
   module: {
     rules: [
@@ -23,13 +27,17 @@ module.exports = {
         use: {
           loader: 'ts-loader',
           options: {
-            transpileOnly: true
-          }
-        }
+            transpileOnly: true,
+          },
+        },
       },
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.png$/,
+        type: 'asset/resource',
       },
     ],
   },
