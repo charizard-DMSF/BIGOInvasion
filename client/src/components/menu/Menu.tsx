@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-//import bigo from '../../assets/bigo.png'
+import React from 'react';
 
 const Menu = () => {
   return (
@@ -10,7 +10,7 @@ const Menu = () => {
         style={{ width: '400px', height: 'auto', alignSelf: 'center' }}
       />
       <div className="menu-content">
-        <Link to="/gamepage" className="link">
+        <Link to="/game" className="link">
           <h2>New Game</h2>
         </Link>
         <Link to="/leaderboard" className="link">

@@ -50,7 +50,7 @@ export default {
     static: {
       directory: path.join(__dirname, 'client/public'),
     },
-    port: 3000,
+    port: 3001,
     hot: true,
   },
 };

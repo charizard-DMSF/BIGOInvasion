@@ -34,6 +34,7 @@ body {
     color: #4CAF50;
 }
 
+/* Enhanced HUD Styles */
 .hud-container {
     position: fixed;
     top: 0;
@@ -43,7 +44,110 @@ body {
     background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: space-between;
+    align-items: center;
     z-index: 100;
+    font-family: 'Arial', sans-serif;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.hud-stats-left,
+.hud-stats-right {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.health-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 200px;
+}
+
+.health-bar-label {
+    display: flex;
+    align-items: center;
+}
+
+.health-bar-background {
+    position: relative;
+    width: 150px;
+    height: 20px;
+    background: rgba(255, 68, 68, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.health-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ff8888);
+    transition: width 0.3s ease;
+}
+
+.health-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.score-display,
+.level-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 5px;
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.score-value,
+.level-value {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #4CAF50;
+    min-width: 30px;
+    text-align: right;
+}
+
+.equipment-container {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.weapon-type,
+.shield-count,
+.nuke-count,
+.mathbucks {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.weapon-type:hover,
+.shield-count:hover,
+.nuke-count:hover,
+.mathbucks:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.value {
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
 }
 
 /* Game Container and Board */
@@ -56,11 +160,11 @@ body {
     justify-content: center;
     align-items: center;
     background-color: #1e1e1e;
-    /* VS Code-like dark theme */
     overflow: hidden;
 }
 
 .game-board {
+    margin-top: 108px;
     width: 1200px;
     height: 800px;
     position: relative;
@@ -366,4 +470,52 @@ body {
         filter: brightness(2);
         transform: translate(-50%, -50%) scale(1.2);
     }
-}   
+}
+
+@keyframes valueChange {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Responsive Design for HUD */
+@media (max-width: 768px) {
+    .hud-container {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0.5rem;
+    }
+
+    .hud-stats-left,
+    .hud-stats-right {
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .health-bar-container {
+        min-width: 150px;
+    }
+
+    .health-bar-background {
+        width: 100px;
+    }
+
+    .equipment-container {
+        gap: 1rem;
+    }
+
+    .weapon-type,
+    .shield-count,
+    .nuke-count,
+    .mathbucks {
+        padding: 4px 8px;
+    }
+}

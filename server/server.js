@@ -1,11 +1,11 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import supabase from './dbController.js';
+//import supabase from './dbController.js';
 const app = express();
 dotenv.config();
 const port = 8080;
 
-app.get('/', async (req, res) => {
+/*app.get('/', async (req, res) => {
   
   const { data, error } = await supabase.from('User').select("*");
   console.log('data :', data);
@@ -19,3 +19,4 @@ app.get('/', async (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 })
+*/

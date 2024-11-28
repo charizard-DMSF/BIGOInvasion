@@ -123,13 +123,16 @@ const Game: React.FC = () => {
     horizontalMovement *= currentSpeed * (deltaTime / 16.667);
     verticalMovement *= currentSpeed * (deltaTime / 16.667);
 
+    // horizontal boundary (left/right)
     const newX = Math.max(
-      PLAYER.SIZE / 2,
-      Math.min(VIEWPORT.WIDTH - PLAYER.SIZE / 2, playerPosition.x + horizontalMovement)
+      50 + PLAYER.SIZE / 2,  // Left boundary stays the same
+      Math.min(1150 - PLAYER.SIZE * 1.5, playerPosition.x + horizontalMovement)  // Right boundary: 1.5x player size
     );
+
+    // vertical boundary (top/bottom)
     const newY = Math.max(
       PLAYER.SIZE / 2,
-      Math.min(6000 - PLAYER.SIZE / 2, playerPosition.y + verticalMovement)
+      Math.min(496 * 12, playerPosition.y + verticalMovement)  // 496 lines * 12px per line
     );
 
     dispatch(movePlayer({ x: newX, y: newY }));
