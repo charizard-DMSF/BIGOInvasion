@@ -1,5 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&family=Dancing+Script:wght@400..700&family=Orbitron:wght@400..900&family=Oswald:wght@200..700&family=Playwrite+SK:wght@100..400&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 * {
+  font-family: 'Orbitron', sans-serif;
   margin: 0;
+}
+
+body {
+  background-color: rgba(0, 0, 0, 0.908);
+  color: white;
 }
 
 nav {
@@ -21,7 +29,19 @@ ul li {
 }
 
 body {
-  margin: 0 10rem;
+  margin: 0 2rem;
+}
+
+#title {
+  font-size: 5rem;
+  margin-top: 3rem;
+}
+
+@keyframes flicker {
+  50% {
+    color: white;
+    filter: saturate(200%) hue-rotate(20deg);
+  }
 }
 
 .menu {
@@ -43,8 +63,76 @@ body {
 .link {
   padding: 1rem;
   text-decoration: none;
+  color: #16ca16;
+}
+
+.menu-content .link:hover {
+  text-transform: uppercase;
+  /* --interval: 2s;
+  display: block;
+  text-shadow: 0 0 10px var(--color1), 0 0 20px var(--color2),
+    0 0 40px var(--color3), 0 0 80px var(--color4);
+  will-change: filter, color;
+  filter: saturate(60%);
+  animation: flicker steps(100) var(--interval) 2s infinite;
+  color: #3fff00;
+  --color1: #00ff40;
+  --color2: #29ab87;
+  --color3: #018749;
+  --color4: #00563b; */
 }
 
 button:hover {
   cursor: pointer;
+}
+
+/* ---------------- login/signup ---------------- */
+
+.login,
+.signup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* ---------------- store ---------------- */
+.store-content {
+  margin: 1rem 5rem;
+}
+
+.store-menu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.store-tables {
+  display: flex;
+  justify-content: space-around;
+}
+
+.stats-table table {
+  border-collapse: separate;
+  border-spacing: 1rem;
+}
+
+th,
+td {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+.quantity {
+  display: flex;
+}
+
+.quantity-adjustment {
+  display: flex;
+  flex-direction: column;
+}
+
+.quantity-adjustment button {
+  border: none;
 }
