@@ -1,4 +1,4 @@
-/* Reset and Base Styles */
+/* base styles */
 * {
     margin: 0;
     padding: 0;
@@ -11,7 +11,7 @@ body {
     color: #fff;
 }
 
-/* Navigation and HUD */
+/* nav and HUD */
 .navbar {
     position: fixed;
     top: 0;
@@ -34,7 +34,7 @@ body {
     color: #4CAF50;
 }
 
-/* Enhanced HUD Styles */
+/* interaction HUD Styles */
 .hud-container {
     position: fixed;
     top: 0;
@@ -150,7 +150,7 @@ body {
     text-align: center;
 }
 
-/* Game Container and Board */
+/* game and board  */
 .game-container {
     width: 100%;
     height: 100vh;
@@ -173,7 +173,7 @@ body {
     background: #1e1e1e;
 }
 
-/* IDE-specific Elements */
+/* IDE  elements */
 .line-numbers {
     position: absolute;
     left: 0;
@@ -238,7 +238,7 @@ body {
     pointer-events: none;
 }
 
-/* Player Styles */
+/* player */
 .player {
     width: 32px;
     height: 32px;
@@ -265,7 +265,7 @@ body {
     animation: charge 1s linear;
 }
 
-/* Projectile Styles */
+/* projecyles */
 .debug-shot {
     position: absolute;
     color: #00ff00;
@@ -302,7 +302,7 @@ body {
     box-shadow: 0 0 8px #ff3333;
 }
 
-/* Menu Styles */
+/* menu */
 .menu-container {
     height: 100vh;
     display: flex;
@@ -339,7 +339,7 @@ body {
     background: rgba(76, 175, 80, 0.4);
 }
 
-/* Store Styles */
+/* store */
 .store-container {
     background-color: #1a1a1a;
     border-radius: 8px;
@@ -445,7 +445,7 @@ body {
     gap: 10px;
 }
 
-/* Animations */
+/* dashin charge animation */
 @keyframes dashPulse {
     0% {
         transform: translate(-50%, -50%) scale(1);
@@ -486,7 +486,7 @@ body {
     }
 }
 
-/* Responsive Design for HUD */
+/* responsiveness for HUD */
 @media (max-width: 768px) {
     .hud-container {
         flex-direction: column;
