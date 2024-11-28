@@ -13,13 +13,12 @@ import {
 import { VIEWPORT, PLAYER, PROJECTILE } from '../../constants/constants';
 import Store from '../store/Store';
 
-// Example code snippets for background
+//  code snippets for background
 const CODE_SNIPPETS = [
   'function handleError(error: Error) {',
   '  console.error("An error occurred:", error);',
   '  throw new Error("Failed to process request");',
   '}',
-  // Add more code snippets as needed
 ];
 
 const Game: React.FC = () => {
@@ -27,7 +26,7 @@ const Game: React.FC = () => {
   const navigate = useNavigate();
   const worldRef = useRef<HTMLDivElement>(null);
 
-  // Get state from Redux
+  // initial state from redux
   const {
     playerPosition,
     projectiles,
@@ -35,11 +34,11 @@ const Game: React.FC = () => {
     inStore
   } = useAppSelector(state => state.game);
 
-  // Camera position
+  // camera position/ logic for following player 
   const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
   const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 50 });
 
-  // Local state
+  // local state
   const activeKeys = useRef<{ [key: string]: boolean }>({});
   const [isDashing, setIsDashing] = useState(false);
   const [canDash, setCanDash] = useState(true);
@@ -49,7 +48,7 @@ const Game: React.FC = () => {
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
 
-  // Handle store toggle
+  // store toggle
   const handleStoreToggle = useCallback((e: KeyboardEvent) => {
     if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
@@ -57,33 +56,33 @@ const Game: React.FC = () => {
     }
   }, [dispatch]);
 
-  // Update camera position
+  // update camera position
   const updateCamera = useCallback(() => {
     if (!worldRef.current) return;
 
-    // Calculate target camera position (centering on player)
+    // calculate target camera position (centering on player)
     const targetY = Math.max(0, Math.min(5200, playerPosition.y - VIEWPORT.HEIGHT / 2));
     const targetX = Math.max(0, Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2));
 
-    // Update line numbers range
+    // update line numbers range
     const startLine = Math.max(0, Math.floor(targetY / 12));
     const endLine = Math.min(500, startLine + Math.ceil(VIEWPORT.HEIGHT / 12));
     setVisibleLineRange({ start: startLine, end: endLine });
 
-    // Smooth camera movement
+    // camera movement
     setCameraTransform({
       x: -targetX,
       y: -targetY
     });
   }, [playerPosition]);
 
-  // Handle game start
+  // handle game start
   const handleGameStart = useCallback(() => {
     dispatch(resetGame());
     dispatch(setGameStatus('playing'));
   }, [dispatch]);
 
-  // Handle game reset
+  // handle game reset
   const handleGameReset = useCallback(() => {
     dispatch(resetGame());
     setIsDashing(false);
@@ -93,8 +92,10 @@ const Game: React.FC = () => {
     lastFrameTimestamp.current = 0;
   }, [dispatch]);
 
-  // Update player position
+  // update player position
   const updatePlayerPosition = useCallback((deltaTime: number) => {
+
+    // this line pauses if in store
     if (gameStatus !== 'playing' || inStore) return;
 
     let horizontalMovement = 0;
@@ -111,13 +112,13 @@ const Game: React.FC = () => {
 
     if (!isPlayerMoving) return;
 
-    // Normalize diagonal movement
+    // normalize diagonal movement
     if (horizontalMovement !== 0 && verticalMovement !== 0) {
       horizontalMovement /= Math.sqrt(2);
       verticalMovement /= Math.sqrt(2);
     }
 
-    // Apply speed and delta time
+    // apply speed and delta time
     const currentSpeed = PLAYER.BASE_SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
     horizontalMovement *= currentSpeed * (deltaTime / 16.667);
     verticalMovement *= currentSpeed * (deltaTime / 16.667);
@@ -135,7 +136,7 @@ const Game: React.FC = () => {
     updateCamera();
   }, [dispatch, playerPosition, isDashing, gameStatus, inStore, updateCamera]);
 
-  // Update projectile positions
+  // update projectile positions
   const updateProjectilePositions = useCallback((deltaTime: number) => {
     if (gameStatus !== 'playing') return;
 
@@ -163,7 +164,7 @@ const Game: React.FC = () => {
     dispatch(updateProjectiles(updatedProjectiles));
   }, [projectiles, gameStatus, dispatch]);
 
-  // Handle dash ability
+  // handle dash ability
   const activateDash = useCallback(() => {
     if (!canDash || gameStatus !== 'playing') return;
 
@@ -179,7 +180,7 @@ const Game: React.FC = () => {
     }, PLAYER.DASH_DURATION_MS + PLAYER.DASH_COOLDOWN_MS);
   }, [canDash, gameStatus]);
 
-  // Handle shooting
+  // handle shooting
   const startProjectileCharge = useCallback((e: MouseEvent) => {
     if (gameStatus !== 'playing' || inStore) return;
 
@@ -219,7 +220,7 @@ const Game: React.FC = () => {
     setIsCharging(false);
   }, [isCharging, chargeStartTimestamp, playerPosition, gameStatus, inStore, dispatch, cameraTransform]);
 
-  // Game loop
+  // game loop
   const gameLoop = useCallback((timestamp: number) => {
     if (gameStatus !== 'playing' || inStore) return;
 
@@ -236,7 +237,7 @@ const Game: React.FC = () => {
     frameRequestId.current = requestAnimationFrame(gameLoop);
   }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore]);
 
-  // Set up event listeners and start game loop
+  // set up event listeners and start game loop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -295,11 +296,11 @@ const Game: React.FC = () => {
     };
   }, [gameLoop, activateDash, startProjectileCharge, releaseProjectile, handleStoreToggle, gameStatus, inStore]);
 
-  // Generate line numbers
+  // gnerate line numbers
   const renderLineNumbers = () => {
     const numbers = [];
     const totalLines = 500;
-    const lineHeight = 12; // Height of each line in pixels
+    const lineHeight = 12; // height of each line in pixels
 
     for (let i = 1; i <= totalLines; i++) {
       const linePosition = (i - 1) * lineHeight;

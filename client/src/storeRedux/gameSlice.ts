@@ -51,10 +51,10 @@ const initialState: GameState = {
     score: 0,
     level: 1,
     gunType: 'Basic',
-    shields: 3,
-    nukes: 1,
+    shields: 0,
+    nukes: 0,
     inStore: false,
-    mathbucks: 500,
+    mathbucks: 0,
     enemies: [],
     projectiles: [],
     gameStatus: 'menu',
@@ -93,15 +93,6 @@ const gameSlice = createSlice({
         updateLevel: (state, action: PayloadAction<number>) => {
             state.level = action.payload;
         },
-        setGunType: (state, action: PayloadAction<string>) => {
-            state.gunType = action.payload;
-        },
-        updateShields: (state, action: PayloadAction<number>) => {
-            state.shields = action.payload;
-        },
-        updateNukes: (state, action: PayloadAction<number>) => {
-            state.nukes = action.payload;
-        },
         toggleStore: (state) => {
             state.inStore = !state.inStore;
         },
@@ -111,10 +102,6 @@ const gameSlice = createSlice({
         upgradeStat: (state, action: PayloadAction<{ stat: string; level: number }>) => {
             const { stat, level } = action.payload;
             state.stats[stat] = level;
-        },
-        addPowerUp: (state, action: PayloadAction<{ powerUp: string; amount: number }>) => {
-            const { powerUp, amount } = action.payload;
-            state.powerUps[powerUp] = (state.powerUps[powerUp] || 0) + amount;
         },
         setGameStatus: (state, action: PayloadAction<'menu' | 'playing' | 'gameOver'>) => {
             state.gameStatus = action.payload;
@@ -128,20 +115,6 @@ const gameSlice = createSlice({
         updateProjectiles: (state, action: PayloadAction<Projectile[]>) => {
             state.projectiles = action.payload;
         },
-        updateEnemies: (state, action: PayloadAction<Enemy[]>) => {
-            state.enemies = action.payload;
-        },
-        damageEnemy: (state, action: PayloadAction<{ id: string; damage: number }>) => {
-            const enemy = state.enemies.find(e => e.id === action.payload.id);
-            if (enemy) {
-                enemy.health -= action.payload.damage;
-                if (enemy.health <= 0) {
-                    state.enemies = state.enemies.filter(e => e.id !== action.payload.id);
-                    state.score += 100;
-                    state.mathbucks += 10;
-                }
-            }
-        }
     }
 });
 
@@ -151,19 +124,13 @@ export const {
     damagePlayer,
     updateScore,
     updateLevel,
-    setGunType,
-    updateShields,
-    updateNukes,
     toggleStore,
     updateMathbucks,
     upgradeStat,
-    addPowerUp,
     setGameStatus,
     resetGame,
     addProjectile,
     updateProjectiles,
-    updateEnemies,
-    damageEnemy
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

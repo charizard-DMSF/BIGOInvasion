@@ -1,39 +1,29 @@
-// components/hud/Hud.tsx
 import React from 'react';
-import { Heart, Target, Shield, Bomb } from 'lucide-react';
+import { useAppSelector } from '../../storeRedux/store';
 
-interface HudProps {
-    health: number;
-    score: number;
-    level: number;
-    gunType: string;
-    shields: number;
-    nukes: number;
-}
+const Hud = () => {
+    const {
+        playerHealth,
+        score,
+        level,
+        shields,
+        nukes,
+        gunType,
+        mathbucks
+    } = useAppSelector(state => state.game);
 
-const Hud: React.FC<HudProps> = ({ health, score, level, gunType, shields, nukes }) => {
     return (
-        <div className="hud-container" style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            padding: '20px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            width: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: 'white'
-        }}>
-            <div className="stats">
-                <div><Heart /> Health: {health}</div>
-                <div>Score: {score}</div>
-                <div>Level: {level}</div>
+        <div className="hud-container">
+            <div>
+                <span>Health: {playerHealth}</span>
+                <span>Score: {score}</span>
+                <span>Level: {level}</span>
             </div>
-
-            <div className="equipment" style={{ display: 'flex', gap: '20px' }}>
-                <div><Target /> Gun: {gunType}</div>
-                <div><Shield /> Shields: {shields}</div>
-                <div><Bomb /> Nukes: {nukes}</div>
+            <div>
+                <span>Gun: {gunType}</span>
+                <span>Shields: {shields}</span>
+                <span>Nukes: {nukes}</span>
+                <span>MathBucks: {mathbucks}</span>
             </div>
         </div>
     );
