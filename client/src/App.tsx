@@ -6,14 +6,14 @@ import Signup from './components/Signup';
 import GamePage from './components/GamePage';
 import Leaderboard from './components/Leaderboard';
 
-const App = () => {
+const App = () => { 
   return (
     <Router>
       <Navbar />
       <Routes>
         <Route path="/" element={<Menu />} />
-        <Route path="/login" element={<Login />}></Route>
-        <Route path="/signup" element={<Signup />}></Route>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/gamepage" element={<GamePage />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
       </Routes>
