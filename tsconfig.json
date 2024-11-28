@@ -1,5 +1,14 @@
-{ 
-    "compilerOptions": { 
-        "jsx": "react-jsx", 
-    } 
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "moduleResolution": "Node",
+    "outDir": "./dist/"
+  },
+  "include": ["client/src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
