@@ -18,6 +18,7 @@ const AppContent = () => {
       {showNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<Menu />} />
+        <Route path="/store" element={<Store />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/game" element={<Game />} />

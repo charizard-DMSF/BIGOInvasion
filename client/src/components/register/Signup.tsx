@@ -11,6 +11,7 @@ const Signup = () => {
         Password:
         <input type="password" id="signup-password" />
       </label>
+      <button className="btn">SIGN-UP</button>
     </div>
   );
 };

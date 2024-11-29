@@ -8,7 +8,7 @@ export const PLAYER = {
     BASE_SPEED: 8,
     DASH_SPEED_MULTIPLIER: 3,
     DASH_DURATION_MS: 150,
-    DASH_COOLDOWN_MS: 1000
+    DASH_COOLDOWN_MS: 50
 };
 
 export const PROJECTILE = {
