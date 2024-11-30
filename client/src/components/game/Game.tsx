@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Hud from '../hud/stats';
+import Hud from '../hud/Stats';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
-import { toggleStore, switchGun } from '../../storeRedux/gameSlice';  // Add switchGun import
+import { toggleStore, switchGun } from '../../storeRedux/gameSlice'; // Add switchGun import
 import Store from '../store/Store';
 import {
   useCamera,
@@ -9,9 +9,9 @@ import {
   useProjectiles,
   usePlayerAbilities,
   useGameState,
-  renderLineNumbers
+  renderLineNumbers,
 } from './gameUtils';
-import { GUNS } from './guns';
+import { GUNS } from './Guns';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -20,18 +20,13 @@ const Game: React.FC = () => {
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
 
-  const currentGun = useAppSelector(state => state.game.currentGun);
+  const currentGun = useAppSelector((state) => state.game.currentGun);
 
-  const {
-    playerPosition,
-    gameStatus,
-    inStore,
-    projectiles,
-    unlockedGuns
-  } = useAppSelector(state => state.game);
+  const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } =
+    useAppSelector((state) => state.game);
 
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
-  const { updateProjectilePositions } = useProjectiles(gameStatus);  
+  const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
 
   const {
@@ -42,7 +37,7 @@ const Game: React.FC = () => {
     releaseProjectile,
     setIsDashing,
     setCanDash,
-    setIsCharging
+    setIsCharging,
   } = usePlayerAbilities(gameStatus, inStore, playerPosition, cameraTransform);
 
   const { isMoving, setIsMoving, updatePlayerPosition } = usePlayerMovement(
@@ -53,28 +48,34 @@ const Game: React.FC = () => {
     inStore
   );
 
-  const gameLoop = React.useCallback((timestamp: number) => {
-    if (gameStatus !== 'playing' || inStore) return;
+  const gameLoop = React.useCallback(
+    (timestamp: number) => {
+      if (gameStatus !== 'playing' || inStore) return;
 
-    if (!lastFrameTimestamp.current) {
+      if (!lastFrameTimestamp.current) {
+        lastFrameTimestamp.current = timestamp;
+      }
+
+      const deltaTime = timestamp - lastFrameTimestamp.current;
       lastFrameTimestamp.current = timestamp;
-    }
 
-    const deltaTime = timestamp - lastFrameTimestamp.current;
-    lastFrameTimestamp.current = timestamp;
+      updatePlayerPosition(deltaTime);
+      updateProjectilePositions(deltaTime);
 
-    updatePlayerPosition(deltaTime);
-    updateProjectilePositions(deltaTime);
+      frameRequestId.current = requestAnimationFrame(gameLoop);
+    },
+    [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore]
+  );
 
-    frameRequestId.current = requestAnimationFrame(gameLoop);
-  }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore]);
-
-  const handleStoreToggle = React.useCallback((e: KeyboardEvent) => {
-    if (e.key === 'p' || e.key === 'P') {
-      e.preventDefault();
-      dispatch(toggleStore());
-    }
-  }, [dispatch]);
+  const handleStoreToggle = React.useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        dispatch(toggleStore());
+      }
+    },
+    [dispatch]
+  );
 
   const handleCompleteReset = React.useCallback(() => {
     handleGameReset();
@@ -87,7 +88,22 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (
+        [
+          'w',
+          'a',
+          's',
+          'd',
+          'W',
+          'A',
+          'S',
+          'D',
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+        ].includes(e.key)
+      ) {
         e.preventDefault();
       }
       activeKeys.current[e.key] = true;
@@ -97,7 +113,7 @@ const Game: React.FC = () => {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
           '2': 'spread',
-          '3': 'sniper'
+          '3': 'sniper',
         };
 
         if (e.key in gunKeys && unlockedGuns.includes(gunKeys[e.key])) {
@@ -131,7 +147,7 @@ const Game: React.FC = () => {
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', releaseProjectile);
     window.addEventListener('keypress', handleStoreToggle);
-    window.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
 
     if (gameStatus === 'playing' && !inStore) {
       frameRequestId.current = requestAnimationFrame(gameLoop);
@@ -147,7 +163,7 @@ const Game: React.FC = () => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', releaseProjectile);
       window.removeEventListener('keypress', handleStoreToggle);
-      window.removeEventListener('contextmenu', e => e.preventDefault());
+      window.removeEventListener('contextmenu', (e) => e.preventDefault());
     };
   }, [
     gameLoop,
@@ -159,28 +175,29 @@ const Game: React.FC = () => {
     inStore,
     setIsMoving,
     dispatch,
-    unlockedGuns
+    unlockedGuns,
   ]);
-  
+
   if (inStore) {
     return <Store />;
   }
-  
+
   return (
     <>
       <Hud />
       <div className="game-container">
         <div className="game-board">
-          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+          <div
+            className="line-numbers"
+            style={{ transform: `translateY(${cameraTransform.y}px)` }}>
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
           <div
             ref={worldRef}
             className="game-world"
             style={{
-              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
-            }}
-            >
+              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`,
+            }}>
             {gameStatus === 'menu' && (
               <div className="menu-container">
                 <button onClick={handleGameStart}>Start Game</button>
@@ -196,34 +213,37 @@ const Game: React.FC = () => {
             {gameStatus === 'playing' && (
               <>
                 <div
-                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
+                  className={`player ${isMoving ? 'moving' : ''} ${
+                    isDashing ? 'dashing' : ''
+                  } ${isCharging ? 'charging' : ''}`}
                   style={{
                     left: `${playerPosition.x}px`,
-                    top: `${playerPosition.y}px`
+                    top: `${playerPosition.y}px`,
                   }}
                 />
 
-        {projectiles.map(projectile => {
-          const gunConfig = GUNS[currentGun];
-                        const projectileConfig = projectile.isCharged ?
-                        gunConfig.charged || gunConfig.normal :
-                        gunConfig.normal;
+                {projectiles.map((projectile) => {
+                  const gunConfig = GUNS[currentGun];
+                  const projectileConfig = projectile.isCharged
+                    ? gunConfig.charged || gunConfig.normal
+                    : gunConfig.normal;
 
-                        return (
-                        <div
-                          key={projectile.id}
-                          className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
-                          style={{
-                            left: `${projectile.position.x}px`,
-                            top: `${projectile.position.y}px`,
-                            width: `${projectileConfig.size}px`,
-                            height: `${projectileConfig.size}px`
-                          }}
-                        >
-                          {projectileConfig.displayText}
-                        </div>
-                        );
-        })}
+                  return (
+                    <div
+                      key={projectile.id}
+                      className={`debug-shot gun-${currentGun} ${
+                        projectile.isCharged ? 'charged' : 'normal'
+                      }`}
+                      style={{
+                        left: `${projectile.position.x}px`,
+                        top: `${projectile.position.y}px`,
+                        width: `${projectileConfig.size}px`,
+                        height: `${projectileConfig.size}px`,
+                      }}>
+                      {projectileConfig.displayText}
+                    </div>
+                  );
+                })}
               </>
             )}
           </div>
