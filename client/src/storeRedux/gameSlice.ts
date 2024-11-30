@@ -61,10 +61,9 @@ const initialState: GameState = {
     unlockedGuns: ['basic'],
     gameStatus: 'menu',
     stats: {
-        'Fire Rate': 1,
-        'Damage': 1,
         'Speed': 1,
-        'Health': 1
+        'Health': 1,
+        'Dash': 1
     },
     powerUps: {
         'Shield': 6,

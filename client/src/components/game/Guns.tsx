@@ -40,7 +40,7 @@ export const GUNS: { [key: string]: GunType } = {
         charged: {
             speed: 15,
             damage: 25,
-            size: 12,
+            size: 50,
             piercing: true,
             chargeTime: 1000,
             displayText: 'console.error()'
@@ -58,11 +58,6 @@ export const GUNS: { [key: string]: GunType } = {
             size: 6,
             piercing: false,
             displayText: 'LMAOOOOOOO'
-        },
-        special: {
-            name: 'Log Burst',
-            description: 'Fires a burst of logs in all directions',
-            cooldown: 5000
         }
     },
     sniper: {

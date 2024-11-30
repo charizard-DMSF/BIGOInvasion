@@ -77,13 +77,6 @@ const Store: React.FC = () => {
                         </div>
                     </div>
                     <div className="powerup-row">
-                        <span>Better Gun</span>
-                        <div className="powerup-info">
-                            <span className="drop-rate">Drop Rate: 3%</span>
-                            <button className="unlock-button" disabled>Unlock!</button>
-                        </div>
-                    </div>
-                    <div className="powerup-row">
                         <span>Nuke</span>
                         <div className="powerup-info">
                             <span className="drop-rate">Drop Rate: 1%</span>

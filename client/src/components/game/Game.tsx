@@ -30,8 +30,6 @@ const Game: React.FC = () => {
     unlockedGuns
   } = useAppSelector(state => state.game);
 
-  const [backgroundCode] = useState<string[]>([]);
-
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
 
   const {
@@ -53,7 +51,7 @@ const Game: React.FC = () => {
     inStore
   );
 
-  const { updateProjectilePositions } = useProjectiles(gameStatus);  // Removed projectiles from destructuring since we get it from state
+  const { updateProjectilePositions } = useProjectiles(gameStatus);  
   const { handleGameStart, handleGameReset } = useGameState();
 
   const gameLoop = React.useCallback((timestamp: number) => {
@@ -177,15 +175,6 @@ const Game: React.FC = () => {
           <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
-
-          <div className="background-code">
-            {backgroundCode.map((snippet, index) => (
-              <div key={index} className="code-snippet">
-                {snippet}
-              </div>
-            ))}
-          </div>
-
           <div
             ref={worldRef}
             className="game-world"
