@@ -141,8 +141,8 @@ export const {
     resetGame,
     addProjectile,
     updateProjectiles,
-    switchGun,  // Added export
-    unlockGun   // Added export
+    switchGun, 
+    unlockGun  
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

@@ -13,14 +13,8 @@ export interface GunType {
     name: string;
     description: string;
     cost: number;
-    baseFireRate: number;
     normal: ProjectileConfig;
     charged?: ProjectileConfig;
-    special?: {
-        name: string;
-        description: string;
-        cooldown: number;
-    };
 }
 
 export const GUNS: { [key: string]: GunType } = {
@@ -29,13 +23,12 @@ export const GUNS: { [key: string]: GunType } = {
         name: 'Debug Logger',
         description: 'Standard console.log() projectiles',
         cost: 0,
-        baseFireRate: 1,
         normal: {
             speed: 12,
             damage: 10,
             size: 8,
             piercing: false,
-            displayText: 'consolllllle.log()'
+            displayText: 'console.log()'
         },
         charged: {
             speed: 15,
@@ -51,13 +44,20 @@ export const GUNS: { [key: string]: GunType } = {
         name: 'Multi Logger',
         description: 'Fires multiple console.logs in a spread pattern',
         cost: 1000,
-        baseFireRate: 0.8,
         normal: {
             speed: 10,
             damage: 8,
             size: 6,
             piercing: false,
             displayText: 'LMAOOOOOOO'
+        },
+        charged: {
+            speed: 15,
+            damage: 25,
+            size: 50,
+            piercing: true,
+            chargeTime: 1000,
+            displayText: 'console.error()'
         }
     },
     sniper: {
@@ -65,13 +65,20 @@ export const GUNS: { [key: string]: GunType } = {
         name: 'Stack Trace',
         description: 'High-damage, high-speed single projectiles',
         cost: 2000,
-        baseFireRate: 0.5,
         normal: {
             speed: 20,
             damage: 30,
             size: 10,
-            piercing: true,
+            piercing: false,
             displayText: 'throw new Error()'
+        },
+        charged: {
+            speed: 15,
+            damage: 25,
+            size: 50,
+            piercing: true,
+            chargeTime: 1000,
+            displayText: 'console.error()'
         }
     }
 };
