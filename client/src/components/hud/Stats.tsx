@@ -1,20 +1,38 @@
 import React from 'react';
 import { useAppSelector } from '../../storeRedux/store';
 import { Heart, Trophy, Target, Shield, Bomb, Crosshair, Coins } from 'lucide-react';
-import '../../styles/styles.css';
 
 const Hud = () => {
+    // Add component render debug
+    console.log('Hud Component Rendering');
+
+    // Get full game state
+    const gameState = useAppSelector(state => state.game);
+    console.log('Full Game State:', gameState);
+
     const {
         playerHealth,
         score,
         level,
         shields,
         nukes,
-        gunType,
+        currentGun,
         mathbucks
-    } = useAppSelector(state => state.game);
+    } = gameState;
 
     const healthPercentage = (playerHealth / 100) * 100;
+
+    // Define gun names and their corresponding key numbers
+    const gunConfig: Record<string, { name: string, key: string }> = {
+        'basic': { name: 'Debug Logger', key: '1' },
+        'spread': { name: 'Multi Logger', key: '2' },
+        'sniper': { name: 'Stack Trace', key: '3' }
+    };
+
+    // Debug gun name resolution
+    console.log('Current Gun:', currentGun);
+    console.log('Gun Config:', gunConfig);
+    console.log('Resolved Gun Info:', gunConfig[currentGun]);
 
     return (
         <div className="hud-container">
@@ -40,12 +58,14 @@ const Hud = () => {
                     <span className="level-value">{level}</span>
                 </div>
             </div>
-
             <div className="hud-stats-right">
                 <div className="equipment-container">
                     <div className="weapon-type">
                         <Crosshair size={20} />
-                        <span className="value">{gunType}</span>
+                        <span className="value" style={{ color: '#00ff00' }}>
+                            {gunConfig[currentGun]?.name || 'Debug Logger'}
+                        </span>
+                        <span className="key-hint">[{gunConfig[currentGun]?.key || '1'}]</span>
                     </div>
                     <div className="shield-count">
                         <Shield size={20} />

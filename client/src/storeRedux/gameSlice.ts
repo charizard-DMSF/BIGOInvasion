@@ -29,13 +29,14 @@ interface GameState {
     playerHealth: number;
     score: number;
     level: number;
-    gunType: string;
     shields: number;
     nukes: number;
     inStore: boolean;
     mathbucks: number;
     enemies: Enemy[];
     projectiles: Projectile[];
+    currentGun: string;
+    unlockedGuns: string[];
     gameStatus: 'menu' | 'playing' | 'gameOver';
     stats: {
         [key: string]: number;
@@ -47,16 +48,17 @@ interface GameState {
 
 const initialState: GameState = {
     playerPosition: { x: 600, y: 400 },
-    playerHealth: 100,
-    score: 0,
+    playerHealth: 50,
+    score: 500,
     level: 1,
-    gunType: 'Basic',
-    shields: 0,
-    nukes: 0,
+    shields: 5,
+    nukes: 10,
     inStore: false,
-    mathbucks: 0,
+    mathbucks: 10000,
     enemies: [],
     projectiles: [],
+    currentGun: 'basic',
+    unlockedGuns: ['basic'],
     gameStatus: 'menu',
     stats: {
         'Fire Rate': 1,
@@ -65,9 +67,8 @@ const initialState: GameState = {
         'Health': 1
     },
     powerUps: {
-        'Shield': 0,
-        'Double Score': 0,
-        'Nuke': 0
+        'Shield': 6,
+        'Nuke': 9
     }
 };
 
@@ -115,6 +116,16 @@ const gameSlice = createSlice({
         updateProjectiles: (state, action: PayloadAction<Projectile[]>) => {
             state.projectiles = action.payload;
         },
+        switchGun: (state, action: PayloadAction<string>) => {
+            if (state.unlockedGuns.includes(action.payload)) {
+                state.currentGun = action.payload;
+            }
+        },
+        unlockGun: (state, action: PayloadAction<string>) => {
+            if (!state.unlockedGuns.includes(action.payload)) {
+                state.unlockedGuns.push(action.payload);
+            }
+        }
     }
 });
 
@@ -131,6 +142,8 @@ export const {
     resetGame,
     addProjectile,
     updateProjectiles,
+    switchGun,  // Added export
+    unlockGun   // Added export
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

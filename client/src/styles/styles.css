@@ -1,4 +1,6 @@
-/* base styles */
+/* =================
+   Base Styles
+   ================= */
 * {
     margin: 0;
     padding: 0;
@@ -11,7 +13,9 @@ body {
     color: #fff;
 }
 
-/* nav and HUD */
+/* =================
+   Navigation Bar
+   ================= */
 .navbar {
     position: fixed;
     top: 0;
@@ -34,22 +38,21 @@ body {
     color: #4CAF50;
 }
 
-/* interaction HUD Styles */
+/* =================
+   HUD Container & Layout
+   ================= */
 .hud-container {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
+    height: 60px;
     padding: 1rem;
     background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    z-index: 100;
-    font-family: 'Arial', sans-serif;
-    color: #fff;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
+    z-index: 1000;
 }
 
 .hud-stats-left,
@@ -59,6 +62,9 @@ body {
     gap: 2rem;
 }
 
+/* =================
+   Health Bar Styles
+   ================= */
 .health-bar-container {
     display: flex;
     align-items: center;
@@ -97,6 +103,9 @@ body {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
+/* =================
+   Score & Level Display
+   ================= */
 .score-display,
 .level-display {
     display: flex;
@@ -117,6 +126,9 @@ body {
     text-align: right;
 }
 
+/* =================
+   Equipment Container
+   ================= */
 .equipment-container {
     display: flex;
     gap: 1.5rem;
@@ -144,16 +156,41 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
+/* Weapon Type Specific Styles */
+.weapon-type {
+    position: relative;
+    min-width: 150px;
+}
+
+.weapon-type .value {
+    margin-right: 5px;
+    color: #00ff00 !important;
+    text-shadow: 0 0 5px #00ff00;
+    visibility: visible;
+    opacity: 1;
+}
+
+.key-hint {
+    font-size: 0.8em;
+    color: #666;
+    margin-left: 8px;
+    padding: 2px 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
 .value {
     font-weight: bold;
     min-width: 20px;
     text-align: center;
 }
 
-/* game and board  */
+/* =================
+   Game Container & Board
+   ================= */
 .game-container {
     width: 100%;
-    height: 100vh;
+    height: calc(100vh - 60px);
     position: relative;
     touch-action: none;
     display: flex;
@@ -161,6 +198,7 @@ body {
     align-items: center;
     background-color: #1e1e1e;
     overflow: hidden;
+    margin-top: 60px;
 }
 
 .game-board {
@@ -173,7 +211,9 @@ body {
     background: #1e1e1e;
 }
 
-/* IDE  elements */
+/* =================
+   IDE Elements
+   ================= */
 .line-numbers {
     position: absolute;
     left: 0;
@@ -211,7 +251,9 @@ body {
     opacity: 0.2;
 }
 
-/* Game World */
+/* =================
+   Game World
+   ================= */
 .game-world {
     width: 1200px;
     height: 6000px;
@@ -238,7 +280,9 @@ body {
     pointer-events: none;
 }
 
-/* player */
+/* =================
+   Player Styles
+   ================= */
 .player {
     width: 32px;
     height: 32px;
@@ -265,7 +309,9 @@ body {
     animation: charge 1s linear;
 }
 
-/* projecyles */
+/* =================
+   Projectiles
+   ================= */
 .debug-shot {
     position: absolute;
     color: #00ff00;
@@ -302,7 +348,9 @@ body {
     box-shadow: 0 0 8px #ff3333;
 }
 
-/* menu */
+/* =================
+   Menu Styles
+   ================= */
 .menu-container {
     height: 100vh;
     display: flex;
@@ -339,7 +387,9 @@ body {
     background: rgba(76, 175, 80, 0.4);
 }
 
-/* store */
+/* =================
+   Store Styles
+   ================= */
 .store-container {
     background-color: #1a1a1a;
     border-radius: 8px;
@@ -373,6 +423,7 @@ body {
     margin: 20px 0;
 }
 
+/* Store Items */
 .stats-row {
     background-color: #2a2a2a;
     padding: 12px;
@@ -383,10 +434,29 @@ body {
     align-items: center;
 }
 
+.stats-row .stat-name {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+}
+
 .stat-name {
     color: white;
 }
 
+/* Store Guns */
+.guns-list {
+    margin-bottom: 2rem;
+}
+
+.gun-description {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* Store Power-ups */
 .powerups-list {
     display: flex;
     flex-direction: column;
@@ -412,6 +482,15 @@ body {
     color: #888;
 }
 
+.powerup-note {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+/* Store Buttons */
 .unlock-button {
     background-color: #3498db;
     color: white;
@@ -423,7 +502,7 @@ body {
 }
 
 .unlock-button:disabled {
-    background-color: #2a2a2a;
+    background-color: #666;
     cursor: not-allowed;
 }
 
@@ -431,21 +510,9 @@ body {
     background-color: #2980b9;
 }
 
-.powerup-note {
-    color: #888;
-    font-style: italic;
-    text-align: center;
-    margin-top: 20px;
-    font-size: 14px;
-}
-
-.store-content {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-/* dashin charge animation */
+/* =================
+   Animations
+   ================= */
 @keyframes dashPulse {
     0% {
         transform: translate(-50%, -50%) scale(1);
@@ -478,7 +545,7 @@ body {
     }
 
     50% {
-        transform: scale(1.2);
+        transform: scale(1.1);
     }
 
     100% {
@@ -486,7 +553,9 @@ body {
     }
 }
 
-/* responsiveness for HUD */
+/* =================
+   Responsive Styles
+   ================= */
 @media (max-width: 768px) {
     .hud-container {
         flex-direction: column;
@@ -512,10 +581,69 @@ body {
         gap: 1rem;
     }
 
-    .weapon-type,
-    .shield-count,
-    .nuke-count,
-    .mathbucks {
-        padding: 4px 8px;
+.weapon-type,
+.shield-count,
+.nuke-count,
+.mathbucks {
+    padding: 4px 8px;
+    font-size: 0.9em;
+}
+
+.key-hint {
+    display: none;
+    /* Hide key hints on mobile */
+}
+
+.score-display,
+.level-display {
+    padding: 4px 6px;
+}
+
+.score-value,
+.level-value {
+    font-size: 1em;
+}
+
+.game-board {
+    margin-top: 160px;
+    /* Adjust for stacked HUD */
+}
+}
+
+/* Smaller screens */
+@media (max-width: 480px) {
+    .hud-container {
+        padding: 0.25rem;
+    }
+
+    .health-bar-container {
+        min-width: 120px;
+    }
+
+    .health-bar-background {
+        width: 80px;
+    }
+
+    .equipment-container {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .weapon-type {
+        min-width: 120px;
+    }
+}
+
+/* Ensure HUD visibility on different backgrounds */
+@supports (backdrop-filter: none) {
+    .hud-container {
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+    }
+}
+
+@supports not (backdrop-filter: none) {
+    .hud-container {
+        background: rgba(0, 0, 0, 0.9);
     }
 }
