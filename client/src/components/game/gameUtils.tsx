@@ -23,7 +23,6 @@ interface PlayerMovementReturn {
 }
 
 // camera management hook that handles viewport positioning and visible line range calculations
-// this hook was chosen to isolate camera logic and provide a clean separation of concerns
 // returns camera transform coordinates and visible line range for efficient rendering
 export const useCamera = (playerPosition: { x: number; y: number }) => {
     const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
@@ -52,7 +51,6 @@ export const useCamera = (playerPosition: { x: number; y: number }) => {
 
 
 // player movement hook that handles all player position updates and movement calculations
-// chosen to encapsulate player movement logic and provide smooth, responsive controls
 // returns movement state and update function for the game loop
 export const usePlayerMovement = (
     updateCamera: () => void,
@@ -81,16 +79,28 @@ export const usePlayerMovement = (
         if (keys['a'] || keys['A'] || keys['ArrowLeft']) horizontalMovement -= 1;
         if (keys['d'] || keys['D'] || keys['ArrowRight']) horizontalMovement += 1;
 
-        // update movement state and handle diagonal movement normalization
+        // check if player is moving 
         const isPlayerMoving = horizontalMovement !== 0 || verticalMovement !== 0;
         setIsMoving(isPlayerMoving);
 
+        // if not return
         if (!isPlayerMoving) return;
 
+
+        // normalize diagonal so its not too fast if not 
         if (horizontalMovement !== 0 && verticalMovement !== 0) {
             horizontalMovement /= Math.sqrt(2);
             verticalMovement /= Math.sqrt(2);
         }
+
+
+        /*
+            Use delta time so in slower computers twice the ground is covered even with less re-renders 
+        At 60 FPS: 16.667 / 16.667 = 1.0
+        At 30 FPS: 33.334 / 16.667 = 2.0
+        At 120 FPS: 8.333 / 16.667 = 0.5
+        */ 
+        
 
         // apply speed calculations with dash multiplier and delta time
         const currentSpeed = PLAYER.SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
@@ -99,12 +109,16 @@ export const usePlayerMovement = (
 
         // calculate new position with boundary restrictions
         const newX = Math.max(
+            //left boundary
             50 + SIZE / 2,
+            //right boundary
             Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
         );
 
         const newY = Math.max(
+            //top boundary
             SIZE / 2,
+            //bottom 
             Math.min(496 * 12, playerPosition.y + verticalMovement)
         );
 
@@ -119,7 +133,7 @@ export const usePlayerMovement = (
 
 
 // projectile management hook that handles creation, movement, and cleanup of projectiles
-// chosen to centralize projectile logic and provide efficient updates in the game loop
+// chosen for projectile logic and provide efficient updates in the game loop
 // returns projectile state and update function
 export const useProjectiles = (gameStatus: string) => {
     const dispatch = useAppDispatch();
@@ -177,21 +191,26 @@ export const usePlayerAbilities = (
     const [isCharging, setIsCharging] = useState(false);
     const [chargeStartTimestamp, setChargeStartTimestamp] = useState(0);
     const PLAYER = useAppSelector(state => state.game.stats)
-    const DASH_COOLDOWN_MS = useAppSelector(state => state.game.DASH_COOLDOWN_MS)
     const currentGun = useAppSelector(state => state.game.currentGun);
     const gunConfig = GUNS[currentGun];
 
     // dash ability implementation with cooldown management
     const activateDash = useCallback(() => {
+
+        // check if possible to initiate dashing
         if (!canDash || gameStatus !== 'playing') return;
 
+        // set current dash loop
         setIsDashing(true);
+        // not allow new dash whilst dashing
         setCanDash(false);
 
+        // wait for dash to finish
         setTimeout(() => {
             setIsDashing(false);
         }, PLAYER.DASH_DURATION_MS);
 
+        // allow dash cd before new one can be used 
         setTimeout(() => {
             setCanDash(true);
         }, PLAYER.DASH_DURATION_MS + PLAYER.DASH_COOLDOWN_MS);
@@ -218,12 +237,23 @@ export const usePlayerAbilities = (
         if (!gameBoard) return;
 
         // calculate projectile direction based on mouse position
+        // get the game board position and dimensions relative to the viewport
         const boardRect = gameBoard.getBoundingClientRect();
+
+        // vonvert mouse position from screen coordinates to game world coordinates by:
+        // starting with mouse screen position (e.clientX)
+        // subtracting board's left offset to get position relative to game board
+        // subtracting camera offset to account for scrolled view
         const mouseX = e.clientX - boardRect.left - cameraTransform.x;
         const mouseY = e.clientY - boardRect.top - cameraTransform.y;
 
+        // calculate the vector from player to mouse by subtracting player position from mouse position
+        // this gives us the direction the projectile should travel
         const directionX = mouseX - playerPosition.x;
         const directionY = mouseY - playerPosition.y;
+
+        // calculate the length of the direction vector using the pythagorean theorem
+        // this is used to normalize the direction vector to ensure consistent projectile speed
         const distance = Math.sqrt(directionX * directionX + directionY * directionY);
 
         dispatch(addProjectile({
@@ -280,14 +310,26 @@ export const useGameState = () => {
 // chosen to provide efficient line number rendering with camera movement
 // returns array of rendered line number elements
 export const renderLineNumbers = (totalLines: number, lineHeight: number, cameraTransform: { x: number, y: number }) => {
+    // Initialize array to store visible line number elements
     const numbers = [];
-
-    for (let i = 1; i <= totalLines; i++) {
+    // iterate through all possible line numbers
+    for (let i = 1; i < totalLines; i++) {
+        // calculate position for current line
+        // subtract 1 from i since line counting starts at 1 but positions start at 0
         const linePosition = (i - 1) * lineHeight;
+
+        // determine if this line is currently visible in viewport by:
+        // 1 checking if line is below top of viewport (-cameraTransform.y)
+        // 2 checking if line is above bottom of viewport (-cameraTransform.y + VIEWPORT.HEIGHT)
         const isVisible = linePosition >= -cameraTransform.y &&
             linePosition <= -cameraTransform.y + VIEWPORT.HEIGHT;
 
+        // only render numbers for visible lines
         if (isVisible) {
+            // create span element for line number with:
+            // unique key for React reconciliation
+            // absolute positioning for precise placement
+            // top position set to exact pixel location
             numbers.push(
                 <span
                     key={i}

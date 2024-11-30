@@ -31,6 +31,8 @@ const Game: React.FC = () => {
   } = useAppSelector(state => state.game);
 
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
+  const { updateProjectilePositions } = useProjectiles(gameStatus);  
+  const { handleGameStart, handleGameReset } = useGameState();
 
   const {
     isDashing,
@@ -50,9 +52,6 @@ const Game: React.FC = () => {
     gameStatus,
     inStore
   );
-
-  const { updateProjectilePositions } = useProjectiles(gameStatus);  
-  const { handleGameStart, handleGameReset } = useGameState();
 
   const gameLoop = React.useCallback((timestamp: number) => {
     if (gameStatus !== 'playing' || inStore) return;
@@ -162,11 +161,11 @@ const Game: React.FC = () => {
     dispatch,
     unlockedGuns
   ]);
-
+  
   if (inStore) {
     return <Store />;
   }
-
+  
   return (
     <>
       <Hud />
@@ -181,7 +180,7 @@ const Game: React.FC = () => {
             style={{
               transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
             }}
-          >
+            >
             {gameStatus === 'menu' && (
               <div className="menu-container">
                 <button onClick={handleGameStart}>Start Game</button>
