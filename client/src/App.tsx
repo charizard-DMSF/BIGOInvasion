@@ -9,7 +9,7 @@ import Store from './components/store/Store';
 import { Button, ConfigProvider, Space } from 'antd';
 import './styles/styles.css';
 
-const AppContent = () => {
+const App = () => {
   return (
     <ConfigProvider
       theme={{
@@ -23,13 +23,12 @@ const AppContent = () => {
         },
       }}>
       <Router>
-        <Navbar />
         <Routes>
           <Route path="/" element={<Menu />} />
           <Route path="/store" element={<Store />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/gamepage" element={<GamePage />} />
+          <Route path="/game" element={<Game />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
         </Routes>
       </Router>
