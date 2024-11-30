@@ -1,6 +1,7 @@
 export interface ProjectileConfig {
     speed: number;
     damage: number;
+
     size: number;
     piercing: boolean;
     chargeTime?: number;
@@ -45,7 +46,7 @@ export const GUNS: { [key: string]: GunType } = {
         description: 'Fires multiple console.logs in a spread pattern',
         cost: 1000,
         normal: {
-            speed: 10,
+            speed: 15,
             damage: 8,
             size: 6,
             piercing: false,

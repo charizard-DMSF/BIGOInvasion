@@ -236,20 +236,6 @@ body {
     text-align: right;
 }
 
-.background-code {
-    position: absolute;
-    left: 50px;
-    top: 0;
-    width: calc(100% - 50px);
-    height: 6000px;
-    color: #404040;
-    font-family: 'Consolas', monospace;
-    font-size: 12px;
-    white-space: pre;
-    pointer-events: none;
-    padding: 8px;
-    opacity: 0.2;
-}
 
 /* =================
    Game World

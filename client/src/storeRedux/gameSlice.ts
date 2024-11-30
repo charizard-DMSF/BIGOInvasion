@@ -61,9 +61,12 @@ const initialState: GameState = {
     unlockedGuns: ['basic'],
     gameStatus: 'menu',
     stats: {
-        'Speed': 1,
-        'Health': 1,
-        'Dash': 1
+        'HEALTH': 1,
+        'SIZE': 32,
+        'BASE_SPEED': 8,
+        'DASH_SPEED_MULTIPLIER': 3,
+        'DASH_DURATION_MS': 150,
+        'DASH_COOLDOWN_MS': 50
     },
     powerUps: {
         'Shield': 6,

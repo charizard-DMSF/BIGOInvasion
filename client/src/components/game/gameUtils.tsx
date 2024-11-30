@@ -8,8 +8,13 @@ import {
     resetGame,
 } from '../../storeRedux/gameSlice';
 import React from 'react';
-import { VIEWPORT, PLAYER, PROJECTILE } from '../../constants/constants';
+
 import { GUNS } from './guns';
+
+ const VIEWPORT = {
+    WIDTH: 1200,
+    HEIGHT: 800
+};
 
 interface PlayerMovementReturn {
     isMoving: boolean;
@@ -58,6 +63,8 @@ export const usePlayerMovement = (
 ): PlayerMovementReturn => {
     const dispatch = useAppDispatch();
     const playerPosition = useAppSelector(state => state.game.playerPosition);
+    const PLAYER = useAppSelector(state => state.game.stats)
+
     const [isMoving, setIsMoving] = useState(false);
 
     const updatePlayerPosition = useCallback((deltaTime: number) => {
@@ -136,6 +143,7 @@ export const useProjectiles = (gameStatus: string) => {
                     }
                 };
             })
+            // if outside boundaries delete
             .filter(projectile =>
                 projectile.position.x >= 0 &&
                 projectile.position.x <= VIEWPORT.WIDTH &&
@@ -167,6 +175,9 @@ export const usePlayerAbilities = (
     const [canDash, setCanDash] = useState(true);
     const [isCharging, setIsCharging] = useState(false);
     const [chargeStartTimestamp, setChargeStartTimestamp] = useState(0);
+    const PLAYER = useAppSelector(state => state.game.stats)
+    const currentGun = useAppSelector(state => state.game.currentGun);
+    const gunConfig = GUNS[currentGun];
 
     // dash ability implementation with cooldown management
     const activateDash = useCallback(() => {
@@ -199,7 +210,7 @@ export const usePlayerAbilities = (
         if (gameStatus !== 'playing' || !isCharging || inStore) return;
 
         const chargeTime = Date.now() - chargeStartTimestamp;
-        const isFullyCharged = chargeTime >= PROJECTILE.CHARGED.CHARGE_TIME_MS;
+        const isFullyCharged = chargeTime >= gunConfig.charged.chargeTime;
 
         const gameBoard = document.querySelector('.game-board');
         if (!gameBoard) return;
