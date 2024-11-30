@@ -298,40 +298,187 @@ body {
 /* =================
    Projectiles
    ================= */
+/* Base projectile styles */
 .debug-shot {
     position: absolute;
-    color: #00ff00;
-    font-family: monospace;
+    font-family: 'Consolas', monospace;
     font-size: 12px;
-    text-shadow: 0 0 5px #00ff00;
     white-space: nowrap;
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 8;
+    transition: all 0.1s ease;
 }
 
+/* Default projectile trail effect */
 .debug-shot::before {
     content: '';
     position: absolute;
     width: 100%;
     height: 2px;
-    background: #00ff00;
     top: 50%;
     left: 0;
     transform: translateY(-50%);
-    box-shadow: 0 0 5px #00ff00;
 }
 
-.debug-shot.charged {
-    color: #ff3333;
-    font-size: 14px;
-    text-shadow: 0 0 8px #ff3333;
+/* Basic Gun Styles */
+.debug-shot.gun-basic.normal {
+    color: #4CAF50;
+    text-shadow: 0 0 5px #4CAF50;
+    background-color: #4CAF50;
 }
 
-.debug-shot.charged::before {
-    background: #ff3333;
+.debug-shot.gun-basic.normal::before {
+    background: linear-gradient(90deg, transparent, #4CAF50);
+    box-shadow: 0 0 8px #4CAF50;
+}
+
+.debug-shot.gun-basic.charged {
+    color: #FF5252;
+    text-shadow: 0 0 8px #FF5252;
+    background-color: #FF5252;
+    animation: errorPulse 0.5s infinite;
+}
+
+.debug-shot.gun-basic.charged::before {
+    background: linear-gradient(90deg, #FF5252, transparent);
+    box-shadow: 0 0 12px #FF5252;
     height: 3px;
-    box-shadow: 0 0 8px #ff3333;
+}
+
+/* Spread Gun Styles */
+.debug-shot.gun-spread.normal {
+    color: #FFC107;
+    text-shadow: 0 0 5px #FFC107;
+    background-color: #FFC107;
+    animation: warnBlink 1s infinite;
+}
+
+.debug-shot.gun-spread.normal::before {
+    background: linear-gradient(90deg, #FFC107, transparent);
+    box-shadow: 0 0 8px #FFC107;
+    animation: spreadTrail 0.5s infinite alternate;
+}
+
+.debug-shot.gun-spread.charged {
+    color: #FF9800;
+    text-shadow: 0 0 10px #FF9800;
+    background-color: #FF9800;
+    animation: assertPulse 0.7s infinite;
+}
+
+.debug-shot.gun-spread.charged::before {
+    background: linear-gradient(90deg, #FF9800, transparent);
+    height: 4px;
+    box-shadow: 0 0 15px #FF9800;
+}
+
+/* Sniper Gun Styles */
+.debug-shot.gun-sniper.normal {
+    color: #2196F3;
+    text-shadow: 0 0 8px #2196F3;
+    background-color: #2196F3;
+}
+
+.debug-shot.gun-sniper.normal::before {
+    background: linear-gradient(90deg, #2196F3, transparent);
+    box-shadow: 0 0 12px #2196F3;
+    animation: sniperTrail 0.3s infinite;
+}
+
+.debug-shot.gun-sniper.charged {
+    color: #9C27B0;
+    text-shadow: 0 0 12px #9C27B0;
+    background-color: #9C27B0;
+    font-weight: bold;
+    animation: fatalError 1s infinite;
+}
+
+.debug-shot.gun-sniper.charged::before {
+    background: linear-gradient(90deg, #9C27B0, transparent);
+    height: 5px;
+    box-shadow: 0 0 20px #9C27B0;
+}
+
+/* Animations */
+@keyframes errorPulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+@keyframes warnBlink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes assertPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        filter: brightness(1.2);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes spreadTrail {
+    from {
+        width: 100%;
+    }
+
+    to {
+        width: 150%;
+    }
+}
+
+@keyframes sniperTrail {
+    0% {
+        opacity: 1;
+        width: 150%;
+    }
+
+    100% {
+        opacity: 0.5;
+        width: 200%;
+    }
+}
+
+@keyframes fatalError {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        filter: hue-rotate(0deg);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        filter: hue-rotate(30deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        filter: hue-rotate(0deg);
+    }
 }
 
 /* =================
@@ -524,6 +671,7 @@ body {
         transform: translate(-50%, -50%) scale(1.2);
     }
 }
+
 
 @keyframes valueChange {
     0% {

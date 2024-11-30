@@ -33,6 +33,8 @@ interface GameState {
     nukes: number;
     inStore: boolean;
     mathbucks: number;
+    DASH_COOLDOWN_MS: number;
+    SIZE: number;
     enemies: Enemy[];
     projectiles: Projectile[];
     currentGun: string;
@@ -56,17 +58,17 @@ const initialState: GameState = {
     inStore: false,
     mathbucks: 10000,
     enemies: [],
+    SIZE: 32,
     projectiles: [],
+    DASH_COOLDOWN_MS: 50,
     currentGun: 'basic',
     unlockedGuns: ['basic'],
     gameStatus: 'menu',
     stats: {
         'HEALTH': 1,
-        'SIZE': 32,
-        'BASE_SPEED': 8,
+        'SPEED': 8,
         'DASH_SPEED_MULTIPLIER': 3,
         'DASH_DURATION_MS': 150,
-        'DASH_COOLDOWN_MS': 50
     },
     powerUps: {
         'Shield': 6,

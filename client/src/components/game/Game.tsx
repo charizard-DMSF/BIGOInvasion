@@ -204,28 +204,27 @@ const Game: React.FC = () => {
                   }}
                 />
 
-                {projectiles.map(projectile => {
-                  const gunConfig = GUNS[currentGun];
-                  const projectileConfig = projectile.isCharged ?
-                    gunConfig.charged || gunConfig.normal :
-                    gunConfig.normal;
+        {projectiles.map(projectile => {
+          const gunConfig = GUNS[currentGun];
+                        const projectileConfig = projectile.isCharged ?
+                        gunConfig.charged || gunConfig.normal :
+                        gunConfig.normal;
 
-                  return (
-                    <div
-                      key={projectile.id}
-                      className={`debug-shot ${projectile.isCharged ? 'charged' : ''}`}
-                      style={{
-                        left: `${projectile.position.x}px`,
-                        top: `${projectile.position.y}px`,
-                        width: `${projectileConfig.size}px`,
-                        height: `${projectileConfig.size}px`,
-                        backgroundColor: projectileConfig.color
-                      }}
-                    >
-                      {projectileConfig.displayText}
-                    </div>
-                  );
-                })}
+                        return (
+                        <div
+                          key={projectile.id}
+                          className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
+                          style={{
+                            left: `${projectile.position.x}px`,
+                            top: `${projectile.position.y}px`,
+                            width: `${projectileConfig.size}px`,
+                            height: `${projectileConfig.size}px`
+                          }}
+                        >
+                          {projectileConfig.displayText}
+                        </div>
+                        );
+        })}
               </>
             )}
           </div>

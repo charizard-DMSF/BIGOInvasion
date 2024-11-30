@@ -64,6 +64,7 @@ export const usePlayerMovement = (
     const dispatch = useAppDispatch();
     const playerPosition = useAppSelector(state => state.game.playerPosition);
     const PLAYER = useAppSelector(state => state.game.stats)
+    const SIZE = useAppSelector(state => state.game.SIZE)
 
     const [isMoving, setIsMoving] = useState(false);
 
@@ -92,7 +93,7 @@ export const usePlayerMovement = (
         }
 
         // apply speed calculations with dash multiplier and delta time
-        const currentSpeed = PLAYER.BASE_SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
+        const currentSpeed = PLAYER.Speed * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
         horizontalMovement *= currentSpeed * (deltaTime / 16.667);
         verticalMovement *= currentSpeed * (deltaTime / 16.667);
 
@@ -176,6 +177,7 @@ export const usePlayerAbilities = (
     const [isCharging, setIsCharging] = useState(false);
     const [chargeStartTimestamp, setChargeStartTimestamp] = useState(0);
     const PLAYER = useAppSelector(state => state.game.stats)
+    const DASH_COOLDOWN_MS = useAppSelector(state => state.game.DASH_COOLDOWN_MS)
     const currentGun = useAppSelector(state => state.game.currentGun);
     const gunConfig = GUNS[currentGun];
 
