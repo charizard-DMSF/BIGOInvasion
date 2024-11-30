@@ -57,7 +57,7 @@ export const GUNS: { [key: string]: GunType } = {
             damage: 20,
             size: 40,
             piercing: true,
-            chargeTime: 800,  // Faster charge time for spread
+            chargeTime: 1000,  // Faster charge time for spread
             displayText: 'WARNNNNNN'  // Different text
         }
     },
@@ -78,7 +78,7 @@ export const GUNS: { [key: string]: GunType } = {
             damage: 50,      // Higher damage
             size: 30,        // Smaller size for precision
             piercing: true,
-            chargeTime: 1500,  // Longer charge time to balance high damage
+            chargeTime: 1000,  // Longer charge time to balance high damage
             displayText: 'KBOOOOOOOOOM'  // Themed text
         }
     }

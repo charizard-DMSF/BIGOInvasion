@@ -93,18 +93,18 @@ export const usePlayerMovement = (
         }
 
         // apply speed calculations with dash multiplier and delta time
-        const currentSpeed = PLAYER.Speed * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
+        const currentSpeed = PLAYER.SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
         horizontalMovement *= currentSpeed * (deltaTime / 16.667);
         verticalMovement *= currentSpeed * (deltaTime / 16.667);
 
         // calculate new position with boundary restrictions
         const newX = Math.max(
-            50 + PLAYER.SIZE / 2,
-            Math.min(1150 - PLAYER.SIZE * 1.5, playerPosition.x + horizontalMovement)
+            50 + SIZE / 2,
+            Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
         );
 
         const newY = Math.max(
-            PLAYER.SIZE / 2,
+            SIZE / 2,
             Math.min(496 * 12, playerPosition.y + verticalMovement)
         );
 
