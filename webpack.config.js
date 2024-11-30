@@ -2,7 +2,7 @@ import path from 'path';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url); 
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default {
@@ -47,10 +47,11 @@ export default {
     }),
   ],
   devServer: {
+    historyApiFallback: true,
     static: {
       directory: path.join(__dirname, 'client/public'),
     },
-    port: 3000,
+    port: 3001,
     hot: true,
   },
 };
