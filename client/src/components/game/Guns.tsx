@@ -50,15 +50,15 @@ export const GUNS: { [key: string]: GunType } = {
             damage: 8,
             size: 6,
             piercing: false,
-            displayText: 'LMAOOOOOOO'
+            displayText: 'WARNNNNNN'
         },
         charged: {
-            speed: 15,
-            damage: 25,
-            size: 50,
+            speed: 12,
+            damage: 20,
+            size: 40,
             piercing: true,
-            chargeTime: 1000,
-            displayText: 'console.error()'
+            chargeTime: 800,  // Faster charge time for spread
+            displayText: 'WARNNNNNN'  // Different text
         }
     },
     sniper: {
@@ -71,15 +71,15 @@ export const GUNS: { [key: string]: GunType } = {
             damage: 30,
             size: 10,
             piercing: false,
-            displayText: 'throw new Error()'
+            displayText: 'KBOOOOOOOOOM'
         },
         charged: {
-            speed: 15,
-            damage: 25,
-            size: 50,
+            speed: 25,       // Faster because it's a sniper
+            damage: 50,      // Higher damage
+            size: 30,        // Smaller size for precision
             piercing: true,
-            chargeTime: 1000,
-            displayText: 'console.error()'
+            chargeTime: 1500,  // Longer charge time to balance high damage
+            displayText: 'KBOOOOOOOOOM'  // Themed text
         }
     }
 };
