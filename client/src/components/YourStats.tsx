@@ -4,7 +4,7 @@ import { useAppSelector } from '../storeRedux/store';
 const PlayerStats: React.FC = () => {
     const { playerHealth, score, level, mathbucks, stats } = useAppSelector(state => state.game);
 
-    // These would come from actual gameplay tracking
+
     const accuracy = 88.5;
     const totalShots = 1250;
     const hitShots = Math.floor(totalShots * (accuracy / 100));

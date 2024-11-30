@@ -8,7 +8,7 @@ interface LeaderboardEntry {
   date: string;
 }
 
-// Mock data
+// mock data
 const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   { rank: 1, username: "Stephanie", score: 150000, level: 42, date: "2024-11-30" },
   { rank: 2, username: "DanDanDan", score: 145000, level: 38, date: "2024-11-29" },

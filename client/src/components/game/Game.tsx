@@ -27,7 +27,7 @@ const Game: React.FC = () => {
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
 
-  // Redux state selectors
+  // redux state selectors
   const currentGun = useAppSelector(state => state.game.currentGun);
   const isPaused = useAppSelector(state => state.game.isPaused);
   const isLeaderboardOpen = useAppSelector(state => state.game.isLeaderboardOpen);
@@ -41,7 +41,7 @@ const Game: React.FC = () => {
     unlockedGuns,
   } = useAppSelector(state => state.game);
 
-  // Custom hooks
+  // custom hooks
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
@@ -65,7 +65,7 @@ const Game: React.FC = () => {
     inStore
   );
 
-  // Game loop
+  // game loop
   const gameLoop = React.useCallback((timestamp: number) => {
     if (gameStatus !== 'playing' || inStore || isPaused) return;
 
@@ -82,7 +82,7 @@ const Game: React.FC = () => {
     frameRequestId.current = requestAnimationFrame(gameLoop);
   }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore, isPaused]);
 
-  // Event handlers
+  // event handlers
   const handleStoreToggle = React.useCallback((e: KeyboardEvent) => {
     if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
@@ -112,7 +112,7 @@ const Game: React.FC = () => {
     lastFrameTimestamp.current = 0;
   }, [handleGameReset, setIsMoving]);
 
-  // Effect for event listeners and game loop
+  // effect for event listeners and game loop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -120,7 +120,7 @@ const Game: React.FC = () => {
       }
       activeKeys.current[e.key] = true;
 
-      // Gun switching logic
+      // gun switching logic
       if (gameStatus === 'playing' && !inStore && !isPaused) {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
@@ -155,7 +155,7 @@ const Game: React.FC = () => {
       }
     };
 
-    // Add event listeners
+    // add event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
@@ -165,12 +165,12 @@ const Game: React.FC = () => {
     window.addEventListener('keydown', handleEscape);
     window.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Start game loop
+    // start game loop
     if (gameStatus === 'playing' && !inStore && !isPaused) {
       frameRequestId.current = requestAnimationFrame(gameLoop);
     }
 
-    // Cleanup
+    // cleanup
     return () => {
       if (frameRequestId.current) {
         cancelAnimationFrame(frameRequestId.current);
@@ -199,12 +199,12 @@ const Game: React.FC = () => {
     unlockedGuns
   ]);
 
-  // Render store if in store mode
+  // render store if in store mode
   if (inStore) {
     return <Store />;
   }
 
-  // Main render
+  // main render
   return (
     <>
       <Hud />

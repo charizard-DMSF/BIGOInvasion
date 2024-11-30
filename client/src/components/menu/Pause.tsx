@@ -16,7 +16,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
     const dispatch = useAppDispatch();
 
     const handleSaveAndQuit = () => {
-        // Here you would implement save logic
+        // here we would implement save logic 
         dispatch(setGameStatus('menu'));
         navigate('/');
     };
