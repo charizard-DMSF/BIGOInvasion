@@ -39,6 +39,9 @@ interface GameState {
   projectiles: Projectile[];
   currentGun: string;
   unlockedGuns: string[];
+  isPaused: boolean;
+  isLeaderboardOpen: boolean;
+  isStatsOpen: boolean;
   gameStatus: 'menu' | 'playing' | 'gameOver';
   stats: {
     [key: string]: number;
@@ -60,6 +63,9 @@ const initialState: GameState = {
   enemies: [],
   SIZE: 32,
   projectiles: [],
+  isPaused: false,
+  isLeaderboardOpen: false,
+  isStatsOpen: false,
   DASH_COOLDOWN_MS: 50,
   currentGun: 'basic',
   unlockedGuns: ['basic'],
@@ -136,6 +142,15 @@ const gameSlice = createSlice({
         state.unlockedGuns.push(action.payload);
       }
     },
+    togglePause: (state) => {
+      state.isPaused = !state.isPaused;
+    },
+    toggleLeaderboard: (state) => {
+      state.isLeaderboardOpen = !state.isLeaderboardOpen;
+    },
+    toggleStats: (state) => {
+      state.isStatsOpen = !state.isStatsOpen;
+    },
     addEnemy: (state, action: PayloadAction<Enemy>) => {
       state.enemies.push(action.payload);
     },
@@ -172,6 +187,9 @@ export const {
   updateProjectiles,
   switchGun,
   unlockGun,
+  togglePause,
+  toggleLeaderboard,
+  toggleStats,
   addEnemy,
   damageEnemy,
   removeEnemy,
