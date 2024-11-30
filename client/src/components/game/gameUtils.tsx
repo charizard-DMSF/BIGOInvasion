@@ -22,8 +22,11 @@ interface PlayerMovementReturn {
     updatePlayerPosition: (deltaTime: number) => void;
 }
 
-// camera management hook that handles viewport positioning and visible line range calculations
-// returns camera transform coordinates and visible line range for efficient rendering
+/**
+ * camera management hook that handles viewport positioning and visible line range calculations
+ * @param playerPosition player position control
+ * @returns coordinates for where tha camera should be locking in
+ */
 export const useCamera = (playerPosition: { x: number; y: number }) => {
     const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
     const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 50 });
@@ -112,14 +115,14 @@ export const usePlayerMovement = (
             //left boundary
             50 + SIZE / 2,
             //right boundary
-            Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
+            Math.min(1225 - SIZE * 1.5, playerPosition.x + horizontalMovement)
         );
 
         const newY = Math.max(
             //top boundary
             SIZE / 2,
             //bottom 
-            Math.min(496 * 12, playerPosition.y + verticalMovement)
+            Math.min(540 * 12, playerPosition.y + verticalMovement)
         );
 
         dispatch(movePlayer({ x: newX, y: newY }));

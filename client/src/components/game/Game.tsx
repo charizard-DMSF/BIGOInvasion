@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hud from '../hud/stats';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
-import { toggleStore, switchGun } from '../../storeRedux/gameSlice';  // Add switchGun import
+import {
+  toggleStore,
+  switchGun,
+  togglePause,
+  toggleLeaderboard,
+  toggleStats
+} from '../../storeRedux/gameSlice';
+import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
 import {
   useCamera,
@@ -20,18 +27,23 @@ const Game: React.FC = () => {
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
 
+  // redux state selectors
   const currentGun = useAppSelector(state => state.game.currentGun);
+  const isPaused = useAppSelector(state => state.game.isPaused);
+  const isLeaderboardOpen = useAppSelector(state => state.game.isLeaderboardOpen);
+  const isStatsOpen = useAppSelector(state => state.game.isStatsOpen);
 
   const {
     playerPosition,
     gameStatus,
     inStore,
     projectiles,
-    unlockedGuns
+    unlockedGuns,
   } = useAppSelector(state => state.game);
 
+  // custom hooks
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
-  const { updateProjectilePositions } = useProjectiles(gameStatus);  
+  const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
 
   const {
@@ -53,8 +65,9 @@ const Game: React.FC = () => {
     inStore
   );
 
+  // game loop
   const gameLoop = React.useCallback((timestamp: number) => {
-    if (gameStatus !== 'playing' || inStore) return;
+    if (gameStatus !== 'playing' || inStore || isPaused) return;
 
     if (!lastFrameTimestamp.current) {
       lastFrameTimestamp.current = timestamp;
@@ -67,14 +80,28 @@ const Game: React.FC = () => {
     updateProjectilePositions(deltaTime);
 
     frameRequestId.current = requestAnimationFrame(gameLoop);
-  }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore]);
+  }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore, isPaused]);
 
+  // event handlers
   const handleStoreToggle = React.useCallback((e: KeyboardEvent) => {
     if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
       dispatch(toggleStore());
     }
   }, [dispatch]);
+
+  const handleEscape = React.useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (isStatsOpen) {
+        dispatch(toggleStats());
+      } else if (isLeaderboardOpen) {
+        dispatch(toggleLeaderboard());
+      } else {
+        dispatch(togglePause());
+      }
+    }
+  }, [dispatch, isLeaderboardOpen, isStatsOpen]);
 
   const handleCompleteReset = React.useCallback(() => {
     handleGameReset();
@@ -85,6 +112,7 @@ const Game: React.FC = () => {
     lastFrameTimestamp.current = 0;
   }, [handleGameReset, setIsMoving]);
 
+  // effect for event listeners and game loop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -92,8 +120,8 @@ const Game: React.FC = () => {
       }
       activeKeys.current[e.key] = true;
 
-      // Gun switching logic
-      if (gameStatus === 'playing' && !inStore) {
+      // gun switching logic
+      if (gameStatus === 'playing' && !inStore && !isPaused) {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
           '2': 'spread',
@@ -117,6 +145,8 @@ const Game: React.FC = () => {
     };
 
     const handleMouseDown = (e: MouseEvent) => {
+      if (isPaused || inStore) return;
+
       if (e.button === 2) {
         e.preventDefault();
         activateDash();
@@ -125,18 +155,22 @@ const Game: React.FC = () => {
       }
     };
 
+    // add event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', releaseProjectile);
     window.addEventListener('keypress', handleStoreToggle);
+    window.addEventListener('keydown', handleEscape);
     window.addEventListener('contextmenu', e => e.preventDefault());
 
-    if (gameStatus === 'playing' && !inStore) {
+    // start game loop
+    if (gameStatus === 'playing' && !inStore && !isPaused) {
       frameRequestId.current = requestAnimationFrame(gameLoop);
     }
 
+    // cleanup
     return () => {
       if (frameRequestId.current) {
         cancelAnimationFrame(frameRequestId.current);
@@ -147,6 +181,7 @@ const Game: React.FC = () => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', releaseProjectile);
       window.removeEventListener('keypress', handleStoreToggle);
+      window.removeEventListener('keydown', handleEscape);
       window.removeEventListener('contextmenu', e => e.preventDefault());
     };
   }, [
@@ -155,17 +190,21 @@ const Game: React.FC = () => {
     startProjectileCharge,
     releaseProjectile,
     handleStoreToggle,
+    handleEscape,
     gameStatus,
     inStore,
+    isPaused,
     setIsMoving,
     dispatch,
     unlockedGuns
   ]);
-  
+
+  // render store if in store mode
   if (inStore) {
     return <Store />;
   }
-  
+
+  // main render
   return (
     <>
       <Hud />
@@ -180,21 +219,25 @@ const Game: React.FC = () => {
             style={{
               transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
             }}
-            >
+          >
+            {/* Menu state */}
             {gameStatus === 'menu' && (
               <div className="menu-container">
                 <button onClick={handleGameStart}>Start Game</button>
               </div>
             )}
 
+            {/* Game over state */}
             {gameStatus === 'gameOver' && (
               <div className="menu-container">
                 <button onClick={handleCompleteReset}>Try Again</button>
               </div>
             )}
 
+            {/* Playing state */}
             {gameStatus === 'playing' && (
               <>
+                {/* Player */}
                 <div
                   className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
                   style={{
@@ -203,31 +246,41 @@ const Game: React.FC = () => {
                   }}
                 />
 
-        {projectiles.map(projectile => {
-          const gunConfig = GUNS[currentGun];
-                        const projectileConfig = projectile.isCharged ?
-                        gunConfig.charged || gunConfig.normal :
-                        gunConfig.normal;
+                {/* Projectiles */}
+                {projectiles.map(projectile => {
+                  const gunConfig = GUNS[currentGun];
+                  const projectileConfig = projectile.isCharged ?
+                    gunConfig.charged || gunConfig.normal :
+                    gunConfig.normal;
 
-                        return (
-                        <div
-                          key={projectile.id}
-                          className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
-                          style={{
-                            left: `${projectile.position.x}px`,
-                            top: `${projectile.position.y}px`,
-                            width: `${projectileConfig.size}px`,
-                            height: `${projectileConfig.size}px`
-                          }}
-                        >
-                          {projectileConfig.displayText}
-                        </div>
-                        );
-        })}
+                  return (
+                    <div
+                      key={projectile.id}
+                      className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
+                      style={{
+                        left: `${projectile.position.x}px`,
+                        top: `${projectile.position.y}px`,
+                        width: `${projectileConfig.size}px`,
+                        height: `${projectileConfig.size}px`
+                      }}
+                    >
+                      {projectileConfig.displayText}
+                    </div>
+                  );
+                })}
               </>
             )}
           </div>
         </div>
+
+        {/* Pause Menu */}
+        {gameStatus === 'playing' && isPaused && (
+          <PauseMenu
+            onResume={() => dispatch(togglePause())}
+            isLeaderboardOpen={isLeaderboardOpen}
+            isStatsOpen={isStatsOpen}
+          />
+        )}
       </div>
     </>
   );
