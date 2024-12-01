@@ -296,6 +296,10 @@ body {
   animation: charge 1s linear;
 }
 
+.player.invulnerable {
+  animation: blink 0.2s alternate infinite;
+}
+
 /* =================
    Enemy Styles
    ================= */
@@ -708,6 +712,15 @@ body {
 
   100% {
     transform: scale(1);
+  }
+}
+
+@keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.5;
   }
 }
 

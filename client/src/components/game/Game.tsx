@@ -10,6 +10,7 @@ import {
   damageEnemy,
   updateEnemies,
   updateProjectiles,
+  damagePlayer,
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -70,23 +71,38 @@ const Game: React.FC = () => {
 
   useEnemyMovement();
 
-  // Add these functions inside Game.tsx
+  // add a cooldown stage for player damage
+  const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
+  const isInvulnerableRef = useRef(false);
+  const damageCooldown = 1000;
+
+  useEffect(() => {
+    isInvulnerableRef.current = isPlayerInvulnerable;
+  }, [isPlayerInvulnerable]);
+
+  // check collisions for projectile hits enemy and enemy hits player
   const checkCollisions = React.useCallback(() => {
     const updatedProjectiles = [...projectiles];
     const updatedEnemies = [...enemies];
     let projectilesToRemove = new Set();
 
-    // Check each projectile against each enemy
-    updatedProjectiles.forEach((projectile) => {
-      updatedEnemies.forEach((enemy) => {
-        // Simple box collision check
-        const projectileBox = {
-          left: projectile.position.x,
-          right: projectile.position.x + 8,
-          top: projectile.position.y,
-          bottom: projectile.position.y + 8,
-        };
+    const playerBox = {
+      left: playerPosition.x,
+      right: playerPosition.x + 8,
+      top: playerPosition.y,
+      bottom: playerPosition.y + 8,
+    };
 
+    // check each projectile against each enemy
+    updatedProjectiles.forEach((projectile) => {
+      const projectileBox = {
+        left: projectile.position.x,
+        right: projectile.position.x + 30,
+        top: projectile.position.y,
+        bottom: projectile.position.y + 30,
+      };
+
+      updatedEnemies.forEach((enemy) => {
         const enemyBox = {
           left: enemy.position.x,
           right: enemy.position.x + 30,
@@ -94,7 +110,7 @@ const Game: React.FC = () => {
           bottom: enemy.position.y + 30,
         };
 
-        // Check if projectile hits enemy
+        // check if projectile hits enemy
         if (
           projectileBox.left < enemyBox.right &&
           projectileBox.right > enemyBox.left &&
@@ -108,10 +124,10 @@ const Game: React.FC = () => {
               ? gunConfig.charged.damage
               : gunConfig.normal.damage;
 
-          // Apply damage to enemy
+          // apply damage to enemy
           dispatch(damageEnemy({ id: enemy.id, damage }));
 
-          // Mark projectile for removal if it's not piercing
+          // mark projectile for removal if it's not piercing
           if (!projectile.piercing) {
             projectilesToRemove.add(projectile.id);
           }
@@ -119,14 +135,55 @@ const Game: React.FC = () => {
       });
     });
 
-    // Remove used projectiles
+    // check if enemy hits player
+    // check if player is not invulnerable, use ref instead of state
+    if (!isInvulnerableRef.current) {
+      for (const enemy of updatedEnemies) {
+        const enemyBox = {
+          left: enemy.position.x,
+          right: enemy.position.x + 30,
+          top: enemy.position.y,
+          bottom: enemy.position.y + 30,
+        };
+
+        if (
+          playerBox.left < enemyBox.right &&
+          playerBox.right > enemyBox.left &&
+          playerBox.top < enemyBox.bottom &&
+          playerBox.bottom > enemyBox.top
+        ) {
+          isInvulnerableRef.current = true;
+          setIsPlayerInvulnerable(true);
+          dispatch(damagePlayer(5));
+
+          const playerElement = document.querySelector('.player');
+          if (playerElement) {
+            playerElement.classList.add('invulnerable');
+          }
+
+          setTimeout(() => {
+            // reset botth ref and state
+            isInvulnerableRef.current = false;
+            setIsPlayerInvulnerable(false);
+            const playerElement = document.querySelector('.player');
+            if (playerElement) {
+              playerElement.classList.remove('invulnerable');
+            }
+          }, damageCooldown);
+
+          break;
+        }
+      }
+    }
+
+    // remove used projectiles
     if (projectilesToRemove.size > 0) {
       const remainingProjectiles = updatedProjectiles.filter(
         (p) => !projectilesToRemove.has(p.id)
       );
       dispatch(updateProjectiles(remainingProjectiles));
     }
-  }, [projectiles, enemies, currentGun, dispatch]);
+  }, [projectiles, enemies, currentGun, playerPosition, dispatch]);
 
   const updateEnemyPositions = React.useCallback(
     (deltaTime: number) => {
