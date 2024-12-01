@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
 import {
   movePlayer,
@@ -6,10 +6,13 @@ import {
   updateProjectiles,
   setGameStatus,
   resetGame,
+  updateEnemies,
+  addEnemy,
 } from '../../storeRedux/gameSlice';
 import React from 'react';
 
 import { GUNS } from './Guns';
+import Enemy from './Enemy';
 
 const VIEWPORT = {
   WIDTH: 1200,
@@ -23,9 +26,9 @@ interface PlayerMovementReturn {
 }
 
 /**
- * camera management hook that handles viewport positioning and visible line range calculations
- * @param playerPosition player position control
- * @returns coordinates for where tha camera should be locking in
+ * useCamera handles viewport positioning and visible line range calculations
+ * @param playerPosition - player position control
+ * @returns Coordinates for where tha camera should be locking in
  */
 export const useCamera = (playerPosition: { x: number; y: number }) => {
   const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
@@ -59,13 +62,20 @@ export const useCamera = (playerPosition: { x: number; y: number }) => {
   return { cameraTransform, visibleLineRange, updateCamera };
 };
 
-// player movement hook that handles all player position updates and movement calculations
-// returns movement state and update function for the game loop
+/**
+ * usePlayerMovement handles all player position updates and movement calculations
+ * @param updateCamera - Function to update the camear position
+ * @param activeKeys - Ref object containing currently pressed keys
+ * @param isDashing - Boolean indicating if the player is currently dashing
+ * @param gameStatus - Current game status
+ * @param inStore - Boolean indicating if the player is in the store
+ * @returns Movement state and update function for the game loop
+ */
 export const usePlayerMovement = (
   updateCamera: () => void,
   activeKeys: React.MutableRefObject<{ [key: string]: boolean }>,
   isDashing: boolean,
-  gameStatus: string,
+  gameStatus: 'menu' | 'playing' | 'gameOver',
   inStore: boolean
 ): PlayerMovementReturn => {
   const dispatch = useAppDispatch();
@@ -120,14 +130,14 @@ export const usePlayerMovement = (
         //left boundary
         50 + SIZE / 2,
         //right boundary
-        Math.min(1225 - SIZE * 1.5, playerPosition.x + horizontalMovement)
+        Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
       );
 
       const newY = Math.max(
         //top boundary
         SIZE / 2,
         //bottom
-        Math.min(540 * 12, playerPosition.y + verticalMovement)
+        Math.min(496 * 12, playerPosition.y + verticalMovement)
       );
 
       dispatch(movePlayer({ x: newX, y: newY }));
@@ -139,10 +149,13 @@ export const usePlayerMovement = (
   return { isMoving, setIsMoving, updatePlayerPosition };
 };
 
-// projectile management hook that handles creation, movement, and cleanup of projectiles
-// chosen for projectile logic and provide efficient updates in the game loop
-// returns projectile state and update function
-export const useProjectiles = (gameStatus: string) => {
+/***
+ * useProjectiles handles creation, movement, and cleanup of projectiles
+ * chosen for projectile logic and provide efficient updates in the game loop
+ * @param gameStatus - Current game status
+ * @returns Projectile state and update function
+ */
+export const useProjectiles = (gameStatus: 'menu' | 'playing' | 'gameOver') => {
   const dispatch = useAppDispatch();
   const projectiles = useAppSelector((state) => state.game.projectiles);
   const currentGun = useAppSelector((state) => state.game.currentGun);
@@ -187,9 +200,15 @@ export const useProjectiles = (gameStatus: string) => {
   return { projectiles, updateProjectilePositions };
 };
 
-// player abilities hook that manages special abilities like dashing and charging projectiles
-// chosen to separate ability logic from basic movement and provide clean ability state management
-// returns ability states and their respective control functions
+/***
+ * usePlayerAbilities manages special abilities like dashing and charging projectiles
+ * chosen to separate ability logic from basic movement and provide clean ability state management
+ * @param gameStatus - Current game status
+ * @param inStore - Boolean indicating if the player is in the store
+ * @param playerPosition - current player position
+ * @param cameraTransform - current coordinates for adjusting the game's viewport
+ * @returns ability states and their respective control functions
+ */
 export const usePlayerAbilities = (
   gameStatus: string,
   inStore: boolean,
@@ -310,9 +329,11 @@ export const usePlayerAbilities = (
   };
 };
 
-// game state management hook that handles game start and reset functionality
-// chosen to centralize game state transitions and provide clean game flow control
-// returns game control functions
+/***
+ * useGameState handles game start and reset functionality
+ * chosen to centralize game state transitions and provide clean game flow control
+ * @returns Game control functions
+ */
 export const useGameState = () => {
   const dispatch = useAppDispatch();
 
@@ -328,9 +349,14 @@ export const useGameState = () => {
   return { handleGameStart, handleGameReset };
 };
 
-// utility function for rendering line numbers with viewport optimization
-// chosen to provide efficient line number rendering with camera movement
-// returns array of rendered line number elements
+/***
+ * renderLineNumbers renders line numbers with viewport optimization
+ * chosen to provide efficient line number rendering with camera movement
+ * @param totalLines - Total number of lines to render
+ * @param lineHeight - Height of each line
+ * @param cameraTransform - current coordinates for adjusting the game's viewport
+ * @returns Array of rendered line number elements
+ */
 export const renderLineNumbers = (
   totalLines: number,
   lineHeight: number,
@@ -370,4 +396,58 @@ export const renderLineNumbers = (
     }
   }
   return numbers;
+};
+
+/**
+ * renderEnemies creates React components for each enemy in the provided array
+ * @param enemies - An array of Enemy objects to be rendered
+ * @returns An array of Enemy components with properties set according to each enemy object
+ */
+export const renderEnemies = (enemies: Enemy[]) => {
+  return enemies.map((enemy: Enemy) => (
+    <Enemy
+      key={enemy.id}
+      id={enemy.id}
+      position={enemy.position}
+      health={enemy.health}
+      speed={enemy.speed}
+    />
+  ));
+};
+
+/**
+ * useEnemyMovement sets up interval to spawn enemies at random positions
+ * when the game is in the 'playing' state, uses a side effecct to create new
+ * enemies every 3 seconds
+ * @returns void
+ */
+export const useEnemyMovement = (): void => {
+  const dispatch = useAppDispatch();
+  const gameStatus = useAppSelector((state) => state.game.gameStatus);
+
+  useEffect(() => {
+    let spawnInterval: NodeJS.Timeout;
+
+    const spawnEnemy = () => {
+      const newEnemy = {
+        id: Math.random().toString(),
+        position: {
+          x: Math.random() * VIEWPORT.WIDTH,
+          y: Math.random() * (VIEWPORT.HEIGHT - 50),
+        },
+        health: 100,
+        speed: 1,
+      };
+
+      dispatch(addEnemy(newEnemy));
+    };
+
+    if (gameStatus === 'playing') {
+      spawnInterval = setInterval(spawnEnemy, 3000);
+    }
+
+    return () => {
+      if (spawnInterval) clearInterval(spawnInterval);
+    };
+  }, [dispatch, gameStatus]);
 };

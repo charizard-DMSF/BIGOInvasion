@@ -7,6 +7,9 @@ import {
   togglePause,
   toggleLeaderboard,
   toggleStats,
+  damageEnemy,
+  updateEnemies,
+  updateProjectiles,
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -17,6 +20,8 @@ import {
   usePlayerAbilities,
   useGameState,
   renderLineNumbers,
+  renderEnemies,
+  useEnemyMovement,
 } from './gameUtils';
 import { GUNS } from './Guns';
 
@@ -34,6 +39,7 @@ const Game: React.FC = () => {
     (state) => state.game.isLeaderboardOpen
   );
   const isStatsOpen = useAppSelector((state) => state.game.isStatsOpen);
+  const enemies = useAppSelector((state) => state.game.enemies);
 
   const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } =
     useAppSelector((state) => state.game);
@@ -62,6 +68,98 @@ const Game: React.FC = () => {
     inStore
   );
 
+  useEnemyMovement();
+
+  // Add these functions inside Game.tsx
+  const checkCollisions = React.useCallback(() => {
+    const updatedProjectiles = [...projectiles];
+    const updatedEnemies = [...enemies];
+    let projectilesToRemove = new Set();
+
+    // Check each projectile against each enemy
+    updatedProjectiles.forEach((projectile) => {
+      updatedEnemies.forEach((enemy) => {
+        // Simple box collision check
+        const projectileBox = {
+          left: projectile.position.x,
+          right: projectile.position.x + 8,
+          top: projectile.position.y,
+          bottom: projectile.position.y + 8,
+        };
+
+        const enemyBox = {
+          left: enemy.position.x,
+          right: enemy.position.x + 30,
+          top: enemy.position.y,
+          bottom: enemy.position.y + 30,
+        };
+
+        // Check if projectile hits enemy
+        if (
+          projectileBox.left < enemyBox.right &&
+          projectileBox.right > enemyBox.left &&
+          projectileBox.top < enemyBox.bottom &&
+          projectileBox.bottom > enemyBox.top
+        ) {
+          // Get damage from current gun configuration
+          const gunConfig = GUNS[currentGun];
+          const damage =
+            projectile.isCharged && gunConfig.charged
+              ? gunConfig.charged.damage
+              : gunConfig.normal.damage;
+
+          // Apply damage to enemy
+          dispatch(damageEnemy({ id: enemy.id, damage }));
+
+          // Mark projectile for removal if it's not piercing
+          if (!projectile.piercing) {
+            projectilesToRemove.add(projectile.id);
+          }
+        }
+      });
+    });
+
+    // Remove used projectiles
+    if (projectilesToRemove.size > 0) {
+      const remainingProjectiles = updatedProjectiles.filter(
+        (p) => !projectilesToRemove.has(p.id)
+      );
+      dispatch(updateProjectiles(remainingProjectiles));
+    }
+  }, [projectiles, enemies, currentGun, dispatch]);
+
+  const updateEnemyPositions = React.useCallback(
+    (deltaTime: number) => {
+      const updatedEnemies = enemies.map((enemy) => {
+        // calculate direction vector towardss the player
+        const directionX = playerPosition.x - enemy.position.x;
+        const directionY = playerPosition.y - enemy.position.y;
+
+        // calcuulate distance to normalize movement
+        const distance = Math.sqrt(
+          directionX * directionX + directionY * directionY
+        );
+        const normalizedDirectionX = distance > 0 ? directionX / distance : 0;
+        const normalizedDirectionY = distance > 0 ? directionY / distance : 0;
+
+        return {
+          ...enemy,
+          position: {
+            x:
+              enemy.position.x +
+              normalizedDirectionX * enemy.speed * (deltaTime / 16.667),
+            y:
+              enemy.position.y +
+              normalizedDirectionY * enemy.speed * (deltaTime / 16.667),
+          },
+        };
+      });
+
+      dispatch(updateEnemies(updatedEnemies));
+    },
+    [enemies, dispatch]
+  );
+
   // game loop
   const gameLoop = React.useCallback(
     (timestamp: number) => {
@@ -76,12 +174,16 @@ const Game: React.FC = () => {
 
       updatePlayerPosition(deltaTime);
       updateProjectilePositions(deltaTime);
+      updateEnemyPositions(deltaTime);
+      checkCollisions();
 
       frameRequestId.current = requestAnimationFrame(gameLoop);
     },
     [
       updatePlayerPosition,
       updateProjectilePositions,
+      updateEnemyPositions,
+      checkCollisions,
       gameStatus,
       inStore,
       isPaused,
@@ -265,6 +367,7 @@ const Game: React.FC = () => {
             {/* Playing state */}
             {gameStatus === 'playing' && (
               <>
+                {renderEnemies(enemies)}
                 {/* Player */}
                 <div
                   className={`player ${isMoving ? 'moving' : ''} ${
