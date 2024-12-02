@@ -10,9 +10,9 @@ import {
   addEnemy,
 } from '../../storeRedux/gameSlice';
 import React from 'react';
-
 import { GUNS } from './Guns';
-import Enemy from './Enemy';
+import EnemyComponent, { ENEMY_TYPES, EnemyTypeKey } from './Enemy';
+import { Enemy } from '../../storeRedux/gameSlice';
 
 const VIEWPORT = {
   WIDTH: 1200,
@@ -405,12 +405,13 @@ export const renderLineNumbers = (
  */
 export const renderEnemies = (enemies: Enemy[]) => {
   return enemies.map((enemy: Enemy) => (
-    <Enemy
+    <EnemyComponent
       key={enemy.id}
       id={enemy.id}
       position={enemy.position}
       health={enemy.health}
       speed={enemy.speed}
+      type={enemy.type}
     />
   ));
 };
@@ -424,19 +425,31 @@ export const renderEnemies = (enemies: Enemy[]) => {
 export const useEnemyMovement = (): void => {
   const dispatch = useAppDispatch();
   const gameStatus = useAppSelector((state) => state.game.gameStatus);
+  const gameLevel = useAppSelector((state) => state.game.level);
 
   useEffect(() => {
     let spawnInterval: NodeJS.Timeout;
 
     const spawnEnemy = () => {
-      const newEnemy = {
+      let availableEnemyTypes: EnemyTypeKey[] = ['basic'];
+      if (gameLevel >= 2) availableEnemyTypes.push('fast');
+      if (gameLevel >= 3) availableEnemyTypes.push('tank');
+
+      const randomType =
+        availableEnemyTypes[
+          Math.floor(Math.random() * availableEnemyTypes.length)
+        ];
+      const enemyConfig = ENEMY_TYPES[randomType].config;
+
+      const newEnemy: Enemy = {
         id: Math.random().toString(),
         position: {
           x: Math.random() * VIEWPORT.WIDTH,
           y: Math.random() * (VIEWPORT.HEIGHT - 50),
         },
         health: 100,
-        speed: 1,
+        speed: enemyConfig.baseSpeed,
+        type: randomType,
       };
 
       dispatch(addEnemy(newEnemy));
@@ -449,5 +462,5 @@ export const useEnemyMovement = (): void => {
     return () => {
       if (spawnInterval) clearInterval(spawnInterval);
     };
-  }, [dispatch, gameStatus]);
+  }, [dispatch, gameStatus, gameLevel]);
 };

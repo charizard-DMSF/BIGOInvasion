@@ -1,5 +1,6 @@
 // src/store/gameSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { EnemyTypeKey } from '../components/game/Enemy';
 
 export interface Position {
   x: number;
@@ -22,6 +23,7 @@ export interface Enemy {
   position: Position;
   health: number;
   speed: number;
+  type: EnemyTypeKey;
 }
 
 interface GameState {
@@ -55,7 +57,7 @@ const initialState: GameState = {
   playerPosition: { x: 600, y: 400 },
   playerHealth: 50,
   score: 500,
-  level: 1,
+  level: 3,
   shields: 5,
   nukes: 10,
   inStore: false,
