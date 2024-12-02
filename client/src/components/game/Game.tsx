@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Hud from '../hud/stats';
+import Hud from '../hud/Stats';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
 import {
   toggleStore,
   switchGun,
   togglePause,
   toggleLeaderboard,
-  toggleStats
+  toggleStats,
+  damageEnemy,
+  updateEnemies,
+  updateProjectiles,
+  damagePlayer,
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -16,9 +20,11 @@ import {
   useProjectiles,
   usePlayerAbilities,
   useGameState,
-  renderLineNumbers
+  renderLineNumbers,
+  renderEnemies,
+  useEnemyMovement,
 } from './gameUtils';
-import { GUNS } from './guns';
+import { GUNS } from './Guns';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -28,18 +34,16 @@ const Game: React.FC = () => {
   const frameRequestId = useRef<number>();
 
   // redux state selectors
-  const currentGun = useAppSelector(state => state.game.currentGun);
-  const isPaused = useAppSelector(state => state.game.isPaused);
-  const isLeaderboardOpen = useAppSelector(state => state.game.isLeaderboardOpen);
-  const isStatsOpen = useAppSelector(state => state.game.isStatsOpen);
+  const currentGun = useAppSelector((state) => state.game.currentGun);
+  const isPaused = useAppSelector((state) => state.game.isPaused);
+  const isLeaderboardOpen = useAppSelector(
+    (state) => state.game.isLeaderboardOpen
+  );
+  const isStatsOpen = useAppSelector((state) => state.game.isStatsOpen);
+  const enemies = useAppSelector((state) => state.game.enemies);
 
-  const {
-    playerPosition,
-    gameStatus,
-    inStore,
-    projectiles,
-    unlockedGuns,
-  } = useAppSelector(state => state.game);
+  const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } =
+    useAppSelector((state) => state.game);
 
   // custom hooks
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
@@ -54,7 +58,7 @@ const Game: React.FC = () => {
     releaseProjectile,
     setIsDashing,
     setCanDash,
-    setIsCharging
+    setIsCharging,
   } = usePlayerAbilities(gameStatus, inStore, playerPosition, cameraTransform);
 
   const { isMoving, setIsMoving, updatePlayerPosition } = usePlayerMovement(
@@ -65,43 +69,210 @@ const Game: React.FC = () => {
     inStore
   );
 
-  // game loop
-  const gameLoop = React.useCallback((timestamp: number) => {
-    if (gameStatus !== 'playing' || inStore || isPaused) return;
+  useEnemyMovement();
 
-    if (!lastFrameTimestamp.current) {
-      lastFrameTimestamp.current = timestamp;
-    }
+  // add a cooldown stage for player damage
+  const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
+  const isInvulnerableRef = useRef(false);
+  const damageCooldown = 1000;
 
-    const deltaTime = timestamp - lastFrameTimestamp.current;
-    lastFrameTimestamp.current = timestamp;
+  useEffect(() => {
+    isInvulnerableRef.current = isPlayerInvulnerable;
+  }, [isPlayerInvulnerable]);
 
-    updatePlayerPosition(deltaTime);
-    updateProjectilePositions(deltaTime);
+  // check collisions for projectile hits enemy and enemy hits player
+  const checkCollisions = React.useCallback(() => {
+    const updatedProjectiles = [...projectiles];
+    const updatedEnemies = [...enemies];
+    let projectilesToRemove = new Set();
 
-    frameRequestId.current = requestAnimationFrame(gameLoop);
-  }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore, isPaused]);
+    const playerBox = {
+      left: playerPosition.x,
+      right: playerPosition.x + 8,
+      top: playerPosition.y,
+      bottom: playerPosition.y + 8,
+    };
 
-  // event handlers
-  const handleStoreToggle = React.useCallback((e: KeyboardEvent) => {
-    if (e.key === 'p' || e.key === 'P') {
-      e.preventDefault();
-      dispatch(toggleStore());
-    }
-  }, [dispatch]);
+    // check each projectile against each enemy
+    updatedProjectiles.forEach((projectile) => {
+      const projectileBox = {
+        left: projectile.position.x,
+        right: projectile.position.x + 30,
+        top: projectile.position.y,
+        bottom: projectile.position.y + 30,
+      };
 
-  const handleEscape = React.useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      if (isStatsOpen) {
-        dispatch(toggleStats());
-      } else if (isLeaderboardOpen) {
-        dispatch(toggleLeaderboard());
-      } else {
-        dispatch(togglePause());
+      updatedEnemies.forEach((enemy) => {
+        const enemyBox = {
+          left: enemy.position.x,
+          right: enemy.position.x + 30,
+          top: enemy.position.y,
+          bottom: enemy.position.y + 30,
+        };
+
+        // check if projectile hits enemy
+        if (
+          projectileBox.left < enemyBox.right &&
+          projectileBox.right > enemyBox.left &&
+          projectileBox.top < enemyBox.bottom &&
+          projectileBox.bottom > enemyBox.top
+        ) {
+          // Get damage from current gun configuration
+          const gunConfig = GUNS[currentGun];
+          const damage =
+            projectile.isCharged && gunConfig.charged
+              ? gunConfig.charged.damage
+              : gunConfig.normal.damage;
+
+          // apply damage to enemy
+          dispatch(damageEnemy({ id: enemy.id, damage }));
+
+          // mark projectile for removal if it's not piercing
+          if (!projectile.piercing) {
+            projectilesToRemove.add(projectile.id);
+          }
+        }
+      });
+    });
+
+    // check if enemy hits player
+    // check if player is not invulnerable, use ref instead of state
+    if (!isInvulnerableRef.current) {
+      for (const enemy of updatedEnemies) {
+        const enemyBox = {
+          left: enemy.position.x,
+          right: enemy.position.x + 30,
+          top: enemy.position.y,
+          bottom: enemy.position.y + 30,
+        };
+
+        if (
+          playerBox.left < enemyBox.right &&
+          playerBox.right > enemyBox.left &&
+          playerBox.top < enemyBox.bottom &&
+          playerBox.bottom > enemyBox.top
+        ) {
+          isInvulnerableRef.current = true;
+          setIsPlayerInvulnerable(true);
+          dispatch(damagePlayer(5));
+
+          const playerElement = document.querySelector('.player');
+          if (playerElement) {
+            playerElement.classList.add('invulnerable');
+          }
+
+          setTimeout(() => {
+            // reset botth ref and state
+            isInvulnerableRef.current = false;
+            setIsPlayerInvulnerable(false);
+            const playerElement = document.querySelector('.player');
+            if (playerElement) {
+              playerElement.classList.remove('invulnerable');
+            }
+          }, damageCooldown);
+
+          break;
+        }
       }
     }
-  }, [dispatch, isLeaderboardOpen, isStatsOpen]);
+
+    // remove used projectiles
+    if (projectilesToRemove.size > 0) {
+      const remainingProjectiles = updatedProjectiles.filter(
+        (p) => !projectilesToRemove.has(p.id)
+      );
+      dispatch(updateProjectiles(remainingProjectiles));
+    }
+  }, [projectiles, enemies, currentGun, playerPosition, dispatch]);
+
+  const updateEnemyPositions = React.useCallback(
+    (deltaTime: number) => {
+      const updatedEnemies = enemies.map((enemy) => {
+        // calculate direction vector towardss the player
+        const directionX = playerPosition.x - enemy.position.x;
+        const directionY = playerPosition.y - enemy.position.y;
+
+        // calcuulate distance to normalize movement
+        const distance = Math.sqrt(
+          directionX * directionX + directionY * directionY
+        );
+        const normalizedDirectionX = distance > 0 ? directionX / distance : 0;
+        const normalizedDirectionY = distance > 0 ? directionY / distance : 0;
+
+        return {
+          ...enemy,
+          position: {
+            x:
+              enemy.position.x +
+              normalizedDirectionX * enemy.speed * (deltaTime / 16.667),
+            y:
+              enemy.position.y +
+              normalizedDirectionY * enemy.speed * (deltaTime / 16.667),
+          },
+        };
+      });
+
+      dispatch(updateEnemies(updatedEnemies));
+    },
+    [enemies, dispatch]
+  );
+
+  // game loop
+  const gameLoop = React.useCallback(
+    (timestamp: number) => {
+      if (gameStatus !== 'playing' || inStore || isPaused) return;
+
+      if (!lastFrameTimestamp.current) {
+        lastFrameTimestamp.current = timestamp;
+      }
+
+      const deltaTime = timestamp - lastFrameTimestamp.current;
+      lastFrameTimestamp.current = timestamp;
+
+      updatePlayerPosition(deltaTime);
+      updateProjectilePositions(deltaTime);
+      updateEnemyPositions(deltaTime);
+      checkCollisions();
+
+      frameRequestId.current = requestAnimationFrame(gameLoop);
+    },
+    [
+      updatePlayerPosition,
+      updateProjectilePositions,
+      updateEnemyPositions,
+      checkCollisions,
+      gameStatus,
+      inStore,
+      isPaused,
+    ]
+  );
+
+  // event handlers
+  const handleStoreToggle = React.useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        dispatch(toggleStore());
+      }
+    },
+    [dispatch]
+  );
+
+  const handleEscape = React.useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (isStatsOpen) {
+          dispatch(toggleStats());
+        } else if (isLeaderboardOpen) {
+          dispatch(toggleLeaderboard());
+        } else {
+          dispatch(togglePause());
+        }
+      }
+    },
+    [dispatch, isLeaderboardOpen, isStatsOpen]
+  );
 
   const handleCompleteReset = React.useCallback(() => {
     handleGameReset();
@@ -115,7 +286,22 @@ const Game: React.FC = () => {
   // effect for event listeners and game loop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (
+        [
+          'w',
+          'a',
+          's',
+          'd',
+          'W',
+          'A',
+          'S',
+          'D',
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+        ].includes(e.key)
+      ) {
         e.preventDefault();
       }
       activeKeys.current[e.key] = true;
@@ -125,7 +311,7 @@ const Game: React.FC = () => {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
           '2': 'spread',
-          '3': 'sniper'
+          '3': 'sniper',
         };
 
         if (e.key in gunKeys && unlockedGuns.includes(gunKeys[e.key])) {
@@ -163,7 +349,7 @@ const Game: React.FC = () => {
     window.addEventListener('mouseup', releaseProjectile);
     window.addEventListener('keypress', handleStoreToggle);
     window.addEventListener('keydown', handleEscape);
-    window.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
 
     // start game loop
     if (gameStatus === 'playing' && !inStore && !isPaused) {
@@ -182,7 +368,7 @@ const Game: React.FC = () => {
       window.removeEventListener('mouseup', releaseProjectile);
       window.removeEventListener('keypress', handleStoreToggle);
       window.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('contextmenu', e => e.preventDefault());
+      window.removeEventListener('contextmenu', (e) => e.preventDefault());
     };
   }, [
     gameLoop,
@@ -196,7 +382,7 @@ const Game: React.FC = () => {
     isPaused,
     setIsMoving,
     dispatch,
-    unlockedGuns
+    unlockedGuns,
   ]);
 
   // render store if in store mode
@@ -210,16 +396,17 @@ const Game: React.FC = () => {
       <Hud />
       <div className="game-container">
         <div className="game-board">
-          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+          <div
+            className="line-numbers"
+            style={{ transform: `translateY(${cameraTransform.y}px)` }}>
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
           <div
             ref={worldRef}
             className="game-world"
             style={{
-              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
-            }}
-          >
+              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`,
+            }}>
             {/* Menu state */}
             {gameStatus === 'menu' && (
               <div className="menu-container">
@@ -237,33 +424,37 @@ const Game: React.FC = () => {
             {/* Playing state */}
             {gameStatus === 'playing' && (
               <>
+                {renderEnemies(enemies)}
                 {/* Player */}
                 <div
-                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
+                  className={`player ${isMoving ? 'moving' : ''} ${
+                    isDashing ? 'dashing' : ''
+                  } ${isCharging ? 'charging' : ''}`}
                   style={{
                     left: `${playerPosition.x}px`,
-                    top: `${playerPosition.y}px`
+                    top: `${playerPosition.y}px`,
                   }}
                 />
 
                 {/* Projectiles */}
-                {projectiles.map(projectile => {
+                {projectiles.map((projectile) => {
                   const gunConfig = GUNS[currentGun];
-                  const projectileConfig = projectile.isCharged ?
-                    gunConfig.charged || gunConfig.normal :
-                    gunConfig.normal;
+                  const projectileConfig = projectile.isCharged
+                    ? gunConfig.charged || gunConfig.normal
+                    : gunConfig.normal;
 
                   return (
                     <div
                       key={projectile.id}
-                      className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
+                      className={`debug-shot gun-${currentGun} ${
+                        projectile.isCharged ? 'charged' : 'normal'
+                      }`}
                       style={{
                         left: `${projectile.position.x}px`,
                         top: `${projectile.position.y}px`,
                         width: `${projectileConfig.size}px`,
-                        height: `${projectileConfig.size}px`
-                      }}
-                    >
+                        height: `${projectileConfig.size}px`,
+                      }}>
                       {projectileConfig.displayText}
                     </div>
                   );
