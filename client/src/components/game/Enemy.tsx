@@ -4,6 +4,7 @@ import { Enemy } from '../../storeRedux/gameSlice';
 export interface EnemyConfig {
   baseHealth: number;
   baseSpeed: number;
+  damage: number;
   size: number;
   color: string;
 }
@@ -25,6 +26,7 @@ export const ENEMY_TYPES: { [key: string]: EnemyType } = {
     config: {
       baseHealth: 50,
       baseSpeed: 1,
+      damage: 5,
       size: 32,
       color: 'red',
     },
@@ -36,6 +38,7 @@ export const ENEMY_TYPES: { [key: string]: EnemyType } = {
     config: {
       baseHealth: 75,
       baseSpeed: 1.5,
+      damage: 2,
       size: 24,
       color: 'yellow',
     },
@@ -47,13 +50,19 @@ export const ENEMY_TYPES: { [key: string]: EnemyType } = {
     config: {
       baseHealth: 200,
       baseSpeed: 0.8,
+      damage: 10,
       size: 40,
       color: 'blue',
     },
   },
 };
 
-const EnemyComponent: React.FC<Enemy> = ({ position, health, type }) => {
+const EnemyComponent: React.FC<Enemy> = ({
+  position,
+  health,
+  damage,
+  type,
+}) => {
   const enemyConfig = ENEMY_TYPES[type].config;
 
   return (
