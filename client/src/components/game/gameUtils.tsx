@@ -445,9 +445,9 @@ export const useEnemyMovement = (): void => {
         id: Math.random().toString(),
         position: {
           x: Math.random() * VIEWPORT.WIDTH,
-          y: Math.random() * (VIEWPORT.HEIGHT - 50),
+          y: Math.random() * VIEWPORT.HEIGHT,
         },
-        health: 100,
+        health: enemyConfig.baseHealth,
         speed: enemyConfig.baseSpeed,
         type: randomType,
       };
