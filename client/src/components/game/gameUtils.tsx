@@ -115,14 +115,14 @@ export const usePlayerMovement = (
             //left boundary
             50 + SIZE / 2,
             //right boundary
-            Math.min(1225 - SIZE * 1.5, playerPosition.x + horizontalMovement)
+            Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
         );
 
         const newY = Math.max(
             //top boundary
             SIZE / 2,
             //bottom 
-            Math.min(540 * 12, playerPosition.y + verticalMovement)
+            Math.min(496 * 12, playerPosition.y + verticalMovement)
         );
 
         dispatch(movePlayer({ x: newX, y: newY }));
