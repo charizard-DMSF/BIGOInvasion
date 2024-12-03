@@ -422,7 +422,7 @@ export const renderEnemies = (enemies: Enemy[]) => {
  * enemies every 3 seconds
  * @returns void
  */
-export const useEnemyMovement = (): void => {
+export const useEnemyMovement = (cameraTransform: { x: number; y: number }): void => {
   const dispatch = useAppDispatch();
   const gameStatus = useAppSelector((state) => state.game.gameStatus);
   const gameLevel = useAppSelector((state) => state.game.level);
@@ -441,26 +441,37 @@ export const useEnemyMovement = (): void => {
         ];
       const enemyConfig = ENEMY_TYPES[randomType].config;
 
-      const newEnemy: Enemy = {
-        id: Math.random().toString(),
-        position: {
-          x: Math.random() * VIEWPORT.WIDTH,
-          y: Math.random() * (VIEWPORT.HEIGHT - 50),
-        },
-        health: 100,
-        speed: enemyConfig.baseSpeed,
-        type: randomType,
-      };
+        const newEnemy: Enemy = {
+            id: Math.random().toString(),
+            position: {
+                x: Math.random() * VIEWPORT.WIDTH,
+                /*
+                540 * 12                             game world height in pixels (6480px)
+                -cameraTransform.y                   current camera vertical (negative because camera moves opposite to world)
+                Math.random() * VIEWPORT.HEIGHT      random position within visible screen (0 to 800px)
+
+                we use math max so it doesnt spawn above the "ceiling"
+                and math min so it doesnt spawn below the "basement"
+                */ 
+                y: Math.max(0, Math.min(540 * 12,
+                    -cameraTransform.y +
+                    Math.random() * VIEWPORT.HEIGHT
+                )),
+            },
+            health: 100,
+            speed: enemyConfig.baseSpeed,
+            type: randomType,
+        };
 
       dispatch(addEnemy(newEnemy));
     };
 
     if (gameStatus === 'playing') {
-      spawnInterval = setInterval(spawnEnemy, 3000);
+      spawnInterval = setInterval(spawnEnemy, 300);
     }
 
     return () => {
       if (spawnInterval) clearInterval(spawnInterval);
     };
-  }, [dispatch, gameStatus, gameLevel]);
+  }, [dispatch, gameStatus, gameLevel, cameraTransform]);
 };
