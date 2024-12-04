@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+
 import Hud from '../hud/Stats';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
 import {
@@ -23,9 +24,9 @@ import {
   useGameState,
   renderLineNumbers,
   renderEnemies,
-  useEnemyMovement,
 } from './gameUtils';
 import { GUNS } from './Guns';
+import { useLevelManager } from './LevelManager';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -42,6 +43,7 @@ const Game: React.FC = () => {
   );
   const isStatsOpen = useAppSelector((state) => state.game.isStatsOpen);
   const enemies = useAppSelector((state) => state.game.enemies);
+  const currentLevel = useAppSelector((state) => state.game.currentLevel);
 
   const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } =
     useAppSelector((state) => state.game);
@@ -50,6 +52,7 @@ const Game: React.FC = () => {
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
+  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat, killCount } = useLevelManager(cameraTransform);
 
   const {
     isDashing,
@@ -70,7 +73,6 @@ const Game: React.FC = () => {
     inStore
   );
 
-  useEnemyMovement(cameraTransform);
 
   // add a cooldown stage for player damage
   const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
@@ -132,6 +134,7 @@ const Game: React.FC = () => {
           const updatedEnemy = enemies.find((e) => e.id === enemy.id);
           if (updatedEnemy && updatedEnemy.health <= 0) {
             dispatch(defeatEnemy(enemy.id));
+            handleEnemyDefeat();
           }
 
           // mark projectile for removal if it's not piercing
@@ -170,7 +173,7 @@ const Game: React.FC = () => {
           }
 
           setTimeout(() => {
-            // reset botth ref and state
+            // reset both ref and state
             isInvulnerableRef.current = false;
             setIsPlayerInvulnerable(false);
             const playerElement = document.querySelector('.player');
@@ -191,16 +194,16 @@ const Game: React.FC = () => {
       );
       dispatch(updateProjectiles(remainingProjectiles));
     }
-  }, [projectiles, enemies, currentGun, playerPosition, dispatch]);
+  }, [projectiles, enemies, currentGun, playerPosition, dispatch, handleEnemyDefeat]);
 
   const updateEnemyPositions = React.useCallback(
     (deltaTime: number) => {
       const updatedEnemies = enemies.map((enemy) => {
-        // calculate direction vector towardss the player
+        // calculate direction vector towards the player
         const directionX = playerPosition.x - enemy.position.x;
         const directionY = playerPosition.y - enemy.position.y;
 
-        // calcuulate distance to normalize movement
+        // calculate distance to normalize movement
         const distance = Math.sqrt(
           directionX * directionX + directionY * directionY
         );
@@ -222,13 +225,13 @@ const Game: React.FC = () => {
 
       dispatch(updateEnemies(updatedEnemies));
     },
-    [enemies, dispatch]
+    [enemies, dispatch, playerPosition]
   );
 
   // game loop
   const gameLoop = React.useCallback(
     (timestamp: number) => {
-      if (gameStatus !== 'playing' || inStore || isPaused) return;
+      if (gameStatus !== 'playing' || inStore || isPaused || isLevelTransitioning) return;
 
       if (!lastFrameTimestamp.current) {
         lastFrameTimestamp.current = timestamp;
@@ -252,6 +255,7 @@ const Game: React.FC = () => {
       gameStatus,
       inStore,
       isPaused,
+      isLevelTransitioning,
     ]
   );
 
@@ -282,7 +286,7 @@ const Game: React.FC = () => {
     [dispatch, isLeaderboardOpen, isStatsOpen]
   );
 
-  const handleCompleteReset = React.useCallback(() => {
+  const handleCompleteReset = useCallback(() => {
     handleGameReset();
     setIsDashing(false);
     setCanDash(true);
@@ -404,6 +408,11 @@ const Game: React.FC = () => {
       <Hud />
       <div className="game-container">
         <div className="game-board">
+                {/* Level Progress Display */}
+                <div className="level-progress">
+                  <h3>Level {currentLevel}</h3>
+                  <p>Kills: {killCount} / {currentLevelConfig.requiredKills}</p>
+                </div>
           <div
             className="line-numbers"
             style={{ transform: `translateY(${cameraTransform.y}px)` }}>
@@ -429,15 +438,32 @@ const Game: React.FC = () => {
               </div>
             )}
 
+            {/* Victory state */}
+            {gameStatus === 'victory' && (
+              <div className="menu-container">
+                <h2>Congratulations!</h2>
+                <p>You've completed all levels!</p>
+                <button onClick={handleCompleteReset}>Play Again</button>
+              </div>
+            )}
+
             {/* Playing state */}
             {gameStatus === 'playing' && (
               <>
+                {/* Level transition overlay */}
+                {isLevelTransitioning && (
+                  <div className="level-transition">
+                    <h2>Level {currentLevel} Complete!</h2>
+                    <p>Reward: {currentLevelConfig.mathbucksReward} Mathbucks</p>
+                    {currentLevel < 7 && <p>Preparing Level {currentLevel + 1}...</p>}
+                  </div>
+                )}
+
                 {renderEnemies(enemies)}
                 {/* Player */}
                 <div
-                  className={`player ${isMoving ? 'moving' : ''} ${
-                    isDashing ? 'dashing' : ''
-                  } ${isCharging ? 'charging' : ''}`}
+                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''
+                    } ${isCharging ? 'charging' : ''}`}
                   style={{
                     left: `${playerPosition.x}px`,
                     top: `${playerPosition.y}px`,
@@ -454,9 +480,8 @@ const Game: React.FC = () => {
                   return (
                     <div
                       key={projectile.id}
-                      className={`debug-shot gun-${currentGun} ${
-                        projectile.isCharged ? 'charged' : 'normal'
-                      }`}
+                      className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'
+                        }`}
                       style={{
                         left: `${projectile.position.x}px`,
                         top: `${projectile.position.y}px`,
@@ -467,6 +492,7 @@ const Game: React.FC = () => {
                     </div>
                   );
                 })}
+
               </>
             )}
           </div>

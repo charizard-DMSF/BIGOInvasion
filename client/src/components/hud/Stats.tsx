@@ -13,11 +13,11 @@ const Hud = () => {
     const {
         playerHealth,
         score,
-        level,
+        currentLevel,
         shields,
         nukes,
         currentGun,
-        mathbucks
+        mathbucks,
     } = gameState;
 
     const healthPercentage = (playerHealth / 100) * 100;
@@ -55,7 +55,12 @@ const Hud = () => {
                 </div>
                 <div className="level-display">
                     <Target size={20} color="#4CAF50" />
-                    <span className="level-value">{level}</span>
+                    <span className="level-value">{currentLevel}</span>
+                </div>
+                {/* Level Progress Display */}
+                <div className="level-progress">
+                    <h3>Level {currentLevel}</h3>
+                    <p>Kills: {killCount} / {currentLevelConfig.requiredKills}</p>
                 </div>
             </div>
             <div className="hud-stats-right">
