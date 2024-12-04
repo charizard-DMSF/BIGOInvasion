@@ -11,6 +11,28 @@ body {
     font-family: 'Arial', sans-serif;
     background-color: #000;
     color: #fff;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.layoutStyle {
+    border-radius: 8;
+    overflow: hidden;
+    width: calc(100% - 8px);
+    max-width: calc(100% - 8px);
+}
+
+.headerStyle {
+    line-height: 1;
+    display: 'flex';
+    margin: 0;
+    padding: 0;
+}
+
+.footerStyle {
+    background-color: rgba(0, 0, 0, 0.88);
 }
 
 /* =================
@@ -20,11 +42,9 @@ body {
     position: fixed;
     top: 0;
     width: 100%;
-    padding: 1rem;
     background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: flex-end;
-    gap: 2rem;
     z-index: 1000;
 }
 
@@ -42,12 +62,9 @@ body {
    HUD Container & Layout
    ================= */
 .hud-container {
-    position: fixed;
-    top: 0;
-    left: 0;
     width: 100%;
-    height: 60px;
-    padding: 1rem;
+    height: 100%;
+    padding: 0 2%;
     background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: space-between;
@@ -133,6 +150,7 @@ body {
     display: flex;
     gap: 1.5rem;
     align-items: center;
+    color: #FFF;
 }
 
 .weapon-type,
@@ -190,7 +208,7 @@ body {
    ================= */
 .game-container {
     width: 100%;
-    height: calc(100vh - 60px);
+    height: 85vh;
     position: relative;
     touch-action: none;
     display: flex;
@@ -198,11 +216,10 @@ body {
     align-items: center;
     background-color: #1e1e1e;
     overflow: hidden;
-    margin-top: 60px;
 }
 
 .game-board {
-    margin-top: 108px;
+    margin-top: 20%;
     width: 1200px;
     height: 800px;
     position: relative;
@@ -215,34 +232,26 @@ body {
    IDE Elements
    ================= */
 .line-numbers {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 50px;
-    height: 6000px;
     background-color: #252526;
     color: #858585;
-    font-family: 'Consolas', monospace;
-    font-size: 12px;
-    user-select: none;
     z-index: 1;
-    padding-top: 8px;
-}
-
-.line-numbers span {
-    display: block;
-    height: 12px;
-    padding: 0 8px;
+    width: 50px;
+    padding-right: 1%;
     text-align: right;
 }
 
+.line-numbers > div {
+    font-family: 'Consolas', monospace;
+    font-size: 18px;
+    user-select: none;
+}
 
 /* =================
    Game World
    ================= */
 .game-world {
     width: 1200px;
-    height: 6000px;
+    height: 6125px;
     position: absolute;
     top: 0;
     left: 0;
@@ -308,6 +317,8 @@ body {
     pointer-events: none;
     z-index: 8;
     transition: all 0.1s ease;
+    user-select: none;
+    
 }
 
 /* Default projectile trail effect */
@@ -319,6 +330,7 @@ body {
     top: 50%;
     left: 0;
     transform: translateY(-50%);
+    user-select: none;
 }
 
 /* Basic Gun Styles */

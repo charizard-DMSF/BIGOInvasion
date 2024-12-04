@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Hud from '../hud/stats';
+import Hud from '../hud/Stats';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
-import { toggleStore, switchGun } from '../../storeRedux/gameSlice';  // Add switchGun import
+import { toggleStore, switchGun } from '../../storeRedux/gameSlice'; // Add switchGun import
 import Store from '../store/Store';
+import { Layout } from 'antd';
 import {
   useCamera,
   usePlayerMovement,
@@ -11,7 +12,7 @@ import {
   useGameState,
   renderLineNumbers
 } from './gameUtils';
-import { GUNS } from './guns';
+import { GUNS } from './Guns';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -31,7 +32,7 @@ const Game: React.FC = () => {
   } = useAppSelector(state => state.game);
 
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
-  const { updateProjectilePositions } = useProjectiles(gameStatus);  
+  const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
 
   const {
@@ -54,26 +55,26 @@ const Game: React.FC = () => {
   );
 
   const gameLoop = React.useCallback((timestamp: number) => {
-    if (gameStatus !== 'playing' || inStore) return;
+      if (gameStatus !== 'playing' || inStore) return;
 
-    if (!lastFrameTimestamp.current) {
+      if (!lastFrameTimestamp.current) {
+        lastFrameTimestamp.current = timestamp;
+      }
+
+      const deltaTime = timestamp - lastFrameTimestamp.current;
       lastFrameTimestamp.current = timestamp;
-    }
 
-    const deltaTime = timestamp - lastFrameTimestamp.current;
-    lastFrameTimestamp.current = timestamp;
+      updatePlayerPosition(deltaTime);
+      updateProjectilePositions(deltaTime);
 
-    updatePlayerPosition(deltaTime);
-    updateProjectilePositions(deltaTime);
-
-    frameRequestId.current = requestAnimationFrame(gameLoop);
+      frameRequestId.current = requestAnimationFrame(gameLoop);
   }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore]);
 
   const handleStoreToggle = React.useCallback((e: KeyboardEvent) => {
-    if (e.key === 'p' || e.key === 'P') {
-      e.preventDefault();
-      dispatch(toggleStore());
-    }
+      if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        dispatch(toggleStore());
+      }
   }, [dispatch]);
 
   const handleCompleteReset = React.useCallback(() => {
@@ -161,75 +162,90 @@ const Game: React.FC = () => {
     dispatch,
     unlockedGuns
   ]);
-  
+
   if (inStore) {
     return <Store />;
   }
-  
+
+  const { Header, Footer, Content } = Layout;
+
+  const layoutStyle = {
+    borderRadius: 8,
+    overflow: 'hidden',
+    width: 'calc(100% - 8px)',
+    maxWidth: 'calc(100% - 8px)',
+  };
+
+  const boundaryPadding = 20;
+
   return (
-    <>
-      <Hud />
-      <div className="game-container">
-        <div className="game-board">
-          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
-            {renderLineNumbers(500, 12, cameraTransform)}
-          </div>
-          <div
-            ref={worldRef}
-            className="game-world"
-            style={{
-              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
-            }}
+    <Layout style={layoutStyle}>
+      <Header className='headerStyle'>
+        <Hud />
+      </Header>
+      <div className='content-container'>
+        <div className='game-container'>
+          <div className='game-board' ref={worldRef}>
+            <div className='line-numbers'>
+              {renderLineNumbers(500, 12, cameraTransform)}
+            </div>
+            <div
+              className='game-world'
+              style={{
+                transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`,
+                padding: `${boundaryPadding}px`,
+              }}
             >
-            {gameStatus === 'menu' && (
-              <div className="menu-container">
-                <button onClick={handleGameStart}>Start Game</button>
-              </div>
-            )}
+              {gameStatus === 'menu' && (
+                <div className="menu-container">
+                  <button onClick={handleGameStart}>Start Game</button>
+                </div>
+              )}
 
-            {gameStatus === 'gameOver' && (
-              <div className="menu-container">
-                <button onClick={handleCompleteReset}>Try Again</button>
-              </div>
-            )}
+              {gameStatus === 'gameOver' && (
+                <div className="menu-container">
+                  <button onClick={handleCompleteReset}>Try Again</button>
+                </div>
+              )}
 
-            {gameStatus === 'playing' && (
-              <>
-                <div
+              {gameStatus === 'playing' && (
+                <>
+                  <div
                   className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
-                  style={{
-                    left: `${playerPosition.x}px`,
-                    top: `${playerPosition.y}px`
-                  }}
-                />
+                    style={{
+                      left: `${playerPosition.x}px`,
+                      top: `${playerPosition.y}px`
+                    }}
+                  />
 
-        {projectiles.map(projectile => {
-          const gunConfig = GUNS[currentGun];
-                        const projectileConfig = projectile.isCharged ?
-                        gunConfig.charged || gunConfig.normal :
-                        gunConfig.normal;
+                  {projectiles.map(projectile => {
+                    const gunConfig = GUNS[currentGun];
+                    const projectileConfig = projectile.isCharged
+                      ? gunConfig.charged || gunConfig.normal
+                      : gunConfig.normal;
 
-                        return (
-                        <div
-                          key={projectile.id}
+                    return (
+                      <div
+                        key={projectile.id}
                           className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
-                          style={{
-                            left: `${projectile.position.x}px`,
-                            top: `${projectile.position.y}px`,
-                            width: `${projectileConfig.size}px`,
+                        style={{
+                          left: `${projectile.position.x}px`,
+                          top: `${projectile.position.y}px`,
+                          width: `${projectileConfig.size}px`,
                             height: `${projectileConfig.size}px`
-                          }}
-                        >
-                          {projectileConfig.displayText}
-                        </div>
-                        );
-        })}
-              </>
-            )}
+                        }}
+                      >
+                        {projectileConfig.displayText}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </>
+    </Layout>
   );
 };
 

@@ -9,7 +9,7 @@ import {
 } from '../../storeRedux/gameSlice';
 import React from 'react';
 
-import { GUNS } from './guns';
+import { GUNS } from './Guns';
 
  const VIEWPORT = {
     WIDTH: 1200,
@@ -26,11 +26,11 @@ interface PlayerMovementReturn {
 // returns camera transform coordinates and visible line range for efficient rendering
 export const useCamera = (playerPosition: { x: number; y: number }) => {
     const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
-    const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 50 });
+    const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 100 });
 
     const updateCamera = useCallback(() => {
         // calculate camera position with bounds checking to prevent out-of-bounds scrolling
-        const targetY = Math.max(0, Math.min(5200, playerPosition.y - VIEWPORT.HEIGHT / 2));
+        const targetY = Math.max(0, Math.min(5850, playerPosition.y - VIEWPORT.HEIGHT / 3));
         const targetX = Math.max(0, Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2));
 
         // calculate visible line range for optimized rendering
@@ -119,7 +119,7 @@ export const usePlayerMovement = (
             //top boundary
             SIZE / 2,
             //bottom 
-            Math.min(496 * 12, playerPosition.y + verticalMovement)
+            Math.min(509 * 12, playerPosition.y + verticalMovement)
         );
 
         dispatch(movePlayer({ x: newX, y: newY }));
@@ -313,7 +313,7 @@ export const renderLineNumbers = (totalLines: number, lineHeight: number, camera
     // Initialize array to store visible line number elements
     const numbers = [];
     // iterate through all possible line numbers
-    for (let i = 1; i < totalLines; i++) {
+    for (let i = 1; i <= totalLines; i++) {
         // calculate position for current line
         // subtract 1 from i since line counting starts at 1 but positions start at 0
         const linePosition = (i - 1) * lineHeight;
@@ -330,17 +330,7 @@ export const renderLineNumbers = (totalLines: number, lineHeight: number, camera
             // unique key for React reconciliation
             // absolute positioning for precise placement
             // top position set to exact pixel location
-            numbers.push(
-                <span
-                    key={i}
-                    style={{
-                        position: 'absolute',
-                        top: `${linePosition}px`
-                    }}
-                >
-                    {i}
-                </span>
-            );
+            numbers.push(<div>{i}</div>);
         }
     }
     return numbers;
