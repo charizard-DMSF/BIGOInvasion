@@ -69,7 +69,7 @@ const Game: React.FC = () => {
     inStore
   );
 
-  useEnemyMovement();
+  useEnemyMovement(cameraTransform);
 
   // add a cooldown stage for player damage
   const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
