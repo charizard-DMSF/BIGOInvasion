@@ -154,7 +154,8 @@ const Game: React.FC = () => {
         ) {
           isInvulnerableRef.current = true;
           setIsPlayerInvulnerable(true);
-          dispatch(damagePlayer(5));
+
+          dispatch(damagePlayer(enemy.damage));
 
           const playerElement = document.querySelector('.player');
           if (playerElement) {

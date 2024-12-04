@@ -410,6 +410,7 @@ export const renderEnemies = (enemies: Enemy[]) => {
       id={enemy.id}
       position={enemy.position}
       health={enemy.health}
+      damage={enemy.damage}
       speed={enemy.speed}
       type={enemy.type}
     />
@@ -440,6 +441,7 @@ export const useEnemyMovement = (cameraTransform: { x: number; y: number }): voi
           Math.floor(Math.random() * availableEnemyTypes.length)
         ];
       const enemyConfig = ENEMY_TYPES[randomType].config;
+
 
         const newEnemy: Enemy = {
             id: Math.random().toString(),

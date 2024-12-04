@@ -22,6 +22,7 @@ export interface Enemy {
   id: string;
   position: Position;
   health: number;
+  damage: number;
   speed: number;
   type: EnemyTypeKey;
 }
