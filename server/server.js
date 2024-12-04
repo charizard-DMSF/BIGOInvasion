@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import supabase from './dbModel.js';
+// import supabase from './dbModel.js';
 import dbController from './dbController.js';
 const app = express();
 dotenv.config();
