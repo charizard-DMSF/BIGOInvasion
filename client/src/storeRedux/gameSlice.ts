@@ -167,14 +167,19 @@ const gameSlice = createSlice({
       const enemy = state.enemies.find((e) => e.id === action.payload.id);
       if (enemy) {
         enemy.health -= action.payload.damage;
-        if (enemy.health <= 0) {
-          state.enemies = state.enemies.filter(
-            (e) => e.id !== action.payload.id
-          );
-          state.score += 10;
-          state.mathbucks += 10;
-        }
+        // if (enemy.health <= 0) {
+        //   state.enemies = state.enemies.filter(
+        //     (e) => e.id !== action.payload.id
+        //   );
+        //   state.score += 10;
+        //   state.mathbucks += 10;
+        // }
       }
+    },
+    defeatEnemy: (state, action: PayloadAction<string>) => {
+      state.enemies = state.enemies.filter((e) => e.id !== action.payload);
+      state.score += 10;
+      state.mathbucks += 10;
     },
     removeEnemy: (state, action: PayloadAction<string>) => {
       state.enemies = state.enemies.filter(
@@ -205,6 +210,7 @@ export const {
   addEnemy,
   updateEnemies,
   damageEnemy,
+  defeatEnemy,
   removeEnemy,
 } = gameSlice.actions;
 

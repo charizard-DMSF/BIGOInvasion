@@ -9,6 +9,7 @@ import {
   toggleStats,
   damageEnemy,
   updateEnemies,
+  defeatEnemy,
   updateProjectiles,
   damagePlayer,
 } from '../../storeRedux/gameSlice';
@@ -126,6 +127,12 @@ const Game: React.FC = () => {
 
           // apply damage to enemy
           dispatch(damageEnemy({ id: enemy.id, damage }));
+
+          // check if enemy is defeated
+          const updatedEnemy = enemies.find((e) => e.id === enemy.id);
+          if (updatedEnemy && updatedEnemy.health <= 0) {
+            dispatch(defeatEnemy(enemy.id));
+          }
 
           // mark projectile for removal if it's not piercing
           if (!projectile.piercing) {
