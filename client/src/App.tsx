@@ -6,6 +6,7 @@ import Signup from './components/register/Signup';
 import Game from './components/game/Game';
 import Leaderboard from './components/Leaderboard';
 import Store from './components/store/Store';
+import PauseMenu from './components/menu/Pause';
 import { Button, ConfigProvider, Space } from 'antd';
 import './styles/styles.css';
 

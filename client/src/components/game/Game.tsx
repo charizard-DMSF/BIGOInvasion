@@ -1,7 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hud from '../hud/Stats';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
-import { toggleStore, switchGun } from '../../storeRedux/gameSlice'; // Add switchGun import
+import {
+  toggleStore,
+  switchGun,
+  togglePause,
+  toggleLeaderboard,
+  toggleStats,
+  damageEnemy,
+  updateEnemies,
+  defeatEnemy,
+  updateProjectiles,
+  damagePlayer,
+} from '../../storeRedux/gameSlice';
+import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
 import { Layout } from 'antd';
 import {
@@ -10,7 +22,9 @@ import {
   useProjectiles,
   usePlayerAbilities,
   useGameState,
-  renderLineNumbers
+  renderLineNumbers,
+  renderEnemies,
+  useEnemyMovement,
 } from './gameUtils';
 import { GUNS } from './Guns';
 
@@ -21,16 +35,19 @@ const Game: React.FC = () => {
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
 
-  const currentGun = useAppSelector(state => state.game.currentGun);
+  // redux state selectors
+  const currentGun = useAppSelector((state) => state.game.currentGun);
+  const isPaused = useAppSelector((state) => state.game.isPaused);
+  const isLeaderboardOpen = useAppSelector(
+    (state) => state.game.isLeaderboardOpen
+  );
+  const isStatsOpen = useAppSelector((state) => state.game.isStatsOpen);
+  const enemies = useAppSelector((state) => state.game.enemies);
 
-  const {
-    playerPosition,
-    gameStatus,
-    inStore,
-    projectiles,
-    unlockedGuns
-  } = useAppSelector(state => state.game);
+  const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } =
+    useAppSelector((state) => state.game);
 
+  // custom hooks
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
@@ -43,7 +60,7 @@ const Game: React.FC = () => {
     releaseProjectile,
     setIsDashing,
     setCanDash,
-    setIsCharging
+    setIsCharging,
   } = usePlayerAbilities(gameStatus, inStore, playerPosition, cameraTransform);
 
   const { isMoving, setIsMoving, updatePlayerPosition } = usePlayerMovement(
@@ -54,8 +71,165 @@ const Game: React.FC = () => {
     inStore
   );
 
-  const gameLoop = React.useCallback((timestamp: number) => {
-      if (gameStatus !== 'playing' || inStore) return;
+  useEnemyMovement(cameraTransform);
+
+  // add a cooldown stage for player damage
+  const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
+  const isInvulnerableRef = useRef(false);
+  const damageCooldown = 1000;
+
+  useEffect(() => {
+    isInvulnerableRef.current = isPlayerInvulnerable;
+  }, [isPlayerInvulnerable]);
+
+  // check collisions for projectile hits enemy and enemy hits player
+  const checkCollisions = React.useCallback(() => {
+    const updatedProjectiles = [...projectiles];
+    const updatedEnemies = [...enemies];
+    let projectilesToRemove = new Set();
+
+    const playerBox = {
+      left: playerPosition.x,
+      right: playerPosition.x + 8,
+      top: playerPosition.y,
+      bottom: playerPosition.y + 8,
+    };
+
+    // check each projectile against each enemy
+    updatedProjectiles.forEach((projectile) => {
+      const projectileBox = {
+        left: projectile.position.x,
+        right: projectile.position.x + 30,
+        top: projectile.position.y,
+        bottom: projectile.position.y + 30,
+      };
+
+      updatedEnemies.forEach((enemy) => {
+        const enemyBox = {
+          left: enemy.position.x,
+          right: enemy.position.x + 30,
+          top: enemy.position.y,
+          bottom: enemy.position.y + 30,
+        };
+
+        // check if projectile hits enemy
+        if (
+          projectileBox.left < enemyBox.right &&
+          projectileBox.right > enemyBox.left &&
+          projectileBox.top < enemyBox.bottom &&
+          projectileBox.bottom > enemyBox.top
+        ) {
+          // Get damage from current gun configuration
+          const gunConfig = GUNS[currentGun];
+          const damage =
+            projectile.isCharged && gunConfig.charged
+              ? gunConfig.charged.damage
+              : gunConfig.normal.damage;
+
+          // apply damage to enemy
+          dispatch(damageEnemy({ id: enemy.id, damage }));
+
+          // check if enemy is defeated
+          const updatedEnemy = enemies.find((e) => e.id === enemy.id);
+          if (updatedEnemy && updatedEnemy.health <= 0) {
+            dispatch(defeatEnemy(enemy.id));
+          }
+
+          // mark projectile for removal if it's not piercing
+          if (!projectile.piercing) {
+            projectilesToRemove.add(projectile.id);
+          }
+        }
+      });
+    });
+
+    // check if enemy hits player
+    // check if player is not invulnerable, use ref instead of state
+    if (!isInvulnerableRef.current) {
+      for (const enemy of updatedEnemies) {
+        const enemyBox = {
+          left: enemy.position.x,
+          right: enemy.position.x + 30,
+          top: enemy.position.y,
+          bottom: enemy.position.y + 30,
+        };
+
+        if (
+          playerBox.left < enemyBox.right &&
+          playerBox.right > enemyBox.left &&
+          playerBox.top < enemyBox.bottom &&
+          playerBox.bottom > enemyBox.top
+        ) {
+          isInvulnerableRef.current = true;
+          setIsPlayerInvulnerable(true);
+
+          dispatch(damagePlayer(enemy.damage));
+
+          const playerElement = document.querySelector('.player');
+          if (playerElement) {
+            playerElement.classList.add('invulnerable');
+          }
+
+          setTimeout(() => {
+            // reset botth ref and state
+            isInvulnerableRef.current = false;
+            setIsPlayerInvulnerable(false);
+            const playerElement = document.querySelector('.player');
+            if (playerElement) {
+              playerElement.classList.remove('invulnerable');
+            }
+          }, damageCooldown);
+
+          break;
+        }
+      }
+    }
+
+    // remove used projectiles
+    if (projectilesToRemove.size > 0) {
+      const remainingProjectiles = updatedProjectiles.filter(
+        (p) => !projectilesToRemove.has(p.id)
+      );
+      dispatch(updateProjectiles(remainingProjectiles));
+    }
+  }, [projectiles, enemies, currentGun, playerPosition, dispatch]);
+
+  const updateEnemyPositions = React.useCallback(
+    (deltaTime: number) => {
+      const updatedEnemies = enemies.map((enemy) => {
+        // calculate direction vector towardss the player
+        const directionX = playerPosition.x - enemy.position.x;
+        const directionY = playerPosition.y - enemy.position.y;
+
+        // calcuulate distance to normalize movement
+        const distance = Math.sqrt(
+          directionX * directionX + directionY * directionY
+        );
+        const normalizedDirectionX = distance > 0 ? directionX / distance : 0;
+        const normalizedDirectionY = distance > 0 ? directionY / distance : 0;
+
+        return {
+          ...enemy,
+          position: {
+            x:
+              enemy.position.x +
+              normalizedDirectionX * enemy.speed * (deltaTime / 16.667),
+            y:
+              enemy.position.y +
+              normalizedDirectionY * enemy.speed * (deltaTime / 16.667),
+          },
+        };
+      });
+
+      dispatch(updateEnemies(updatedEnemies));
+    },
+    [enemies, dispatch]
+  );
+
+  // game loop
+  const gameLoop = React.useCallback(
+    (timestamp: number) => {
+      if (gameStatus !== 'playing' || inStore || isPaused) return;
 
       if (!lastFrameTimestamp.current) {
         lastFrameTimestamp.current = timestamp;
@@ -66,16 +240,48 @@ const Game: React.FC = () => {
 
       updatePlayerPosition(deltaTime);
       updateProjectilePositions(deltaTime);
+      updateEnemyPositions(deltaTime);
+      checkCollisions();
 
       frameRequestId.current = requestAnimationFrame(gameLoop);
-  }, [updatePlayerPosition, updateProjectilePositions, gameStatus, inStore]);
+    },
+    [
+      updatePlayerPosition,
+      updateProjectilePositions,
+      updateEnemyPositions,
+      checkCollisions,
+      gameStatus,
+      inStore,
+      isPaused,
+    ]
+  );
 
-  const handleStoreToggle = React.useCallback((e: KeyboardEvent) => {
+  // event handlers
+  const handleStoreToggle = React.useCallback(
+    (e: KeyboardEvent) => {
       if (e.key === 'p' || e.key === 'P') {
         e.preventDefault();
         dispatch(toggleStore());
       }
-  }, [dispatch]);
+    },
+    [dispatch]
+  );
+
+  const handleEscape = React.useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (isStatsOpen) {
+          dispatch(toggleStats());
+        } else if (isLeaderboardOpen) {
+          dispatch(toggleLeaderboard());
+        } else {
+          dispatch(togglePause());
+        }
+      }
+    },
+    [dispatch, isLeaderboardOpen, isStatsOpen]
+  );
 
   const handleCompleteReset = React.useCallback(() => {
     handleGameReset();
@@ -86,19 +292,35 @@ const Game: React.FC = () => {
     lastFrameTimestamp.current = 0;
   }, [handleGameReset, setIsMoving]);
 
+  // effect for event listeners and game loop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (
+        [
+          'w',
+          'a',
+          's',
+          'd',
+          'W',
+          'A',
+          'S',
+          'D',
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+        ].includes(e.key)
+      ) {
         e.preventDefault();
       }
       activeKeys.current[e.key] = true;
 
-      // Gun switching logic
-      if (gameStatus === 'playing' && !inStore) {
+      // gun switching logic
+      if (gameStatus === 'playing' && !inStore && !isPaused) {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
           '2': 'spread',
-          '3': 'sniper'
+          '3': 'sniper',
         };
 
         if (e.key in gunKeys && unlockedGuns.includes(gunKeys[e.key])) {
@@ -118,6 +340,8 @@ const Game: React.FC = () => {
     };
 
     const handleMouseDown = (e: MouseEvent) => {
+      if (isPaused || inStore) return;
+
       if (e.button === 2) {
         e.preventDefault();
         activateDash();
@@ -126,18 +350,22 @@ const Game: React.FC = () => {
       }
     };
 
+    // add event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', releaseProjectile);
     window.addEventListener('keypress', handleStoreToggle);
-    window.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('keydown', handleEscape);
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    if (gameStatus === 'playing' && !inStore) {
+    // start game loop
+    if (gameStatus === 'playing' && !inStore && !isPaused) {
       frameRequestId.current = requestAnimationFrame(gameLoop);
     }
 
+    // cleanup
     return () => {
       if (frameRequestId.current) {
         cancelAnimationFrame(frameRequestId.current);
@@ -148,7 +376,8 @@ const Game: React.FC = () => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', releaseProjectile);
       window.removeEventListener('keypress', handleStoreToggle);
-      window.removeEventListener('contextmenu', e => e.preventDefault());
+      window.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('contextmenu', (e) => e.preventDefault());
     };
   }, [
     gameLoop,
@@ -156,13 +385,16 @@ const Game: React.FC = () => {
     startProjectileCharge,
     releaseProjectile,
     handleStoreToggle,
+    handleEscape,
     gameStatus,
     inStore,
+    isPaused,
     setIsMoving,
     dispatch,
-    unlockedGuns
+    unlockedGuns,
   ]);
 
+  // render store if in store mode
   if (inStore) {
     return <Store />;
   }
@@ -179,71 +411,87 @@ const Game: React.FC = () => {
   const boundaryPadding = 20;
 
   return (
-    <Layout style={layoutStyle}>
+      <Layout style={layoutStyle}>
       <Header className='headerStyle'>
         <Hud />
       </Header>
-      <div className='content-container'>
-        <div className='game-container'>
-          <div className='game-board' ref={worldRef}>
-            <div className='line-numbers'>
-              {renderLineNumbers(500, 12, cameraTransform)}
-            </div>
-            <div
-              className='game-world'
-              style={{
-                transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`,
-                padding: `${boundaryPadding}px`,
-              }}
+      <div className='content-container'></div>
+      <div className="game-container">
+        <div className="game-board">
+          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+            {renderLineNumbers(500, 12, cameraTransform)}
+          </div>
+          <div
+            ref={worldRef}
+            className="game-world"
+            style={{
+              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
+            }}
             >
-              {gameStatus === 'menu' && (
-                <div className="menu-container">
-                  <button onClick={handleGameStart}>Start Game</button>
-                </div>
-              )}
+            {gameStatus === 'menu' && (
+              <div className="menu-container">
+                <button onClick={handleGameStart}>Start Game</button>
+              </div>
+            )}
 
-              {gameStatus === 'gameOver' && (
-                <div className="menu-container">
-                  <button onClick={handleCompleteReset}>Try Again</button>
-                </div>
-              )}
+            {/* Game over state */}
+            {gameStatus === 'gameOver' && (
+              <div className="menu-container">
+                <button onClick={handleCompleteReset}>Try Again</button>
+              </div>
+            )}
 
-              {gameStatus === 'playing' && (
-                <>
-                  <div
-                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
-                    style={{
-                      left: `${playerPosition.x}px`,
-                      top: `${playerPosition.y}px`
-                    }}
-                  />
+            {/* Playing state */}
+            {gameStatus === 'playing' && (
+              <>
+                {renderEnemies(enemies)}
+                {/* Player */}
+                <div
+                  className={`player ${isMoving ? 'moving' : ''} ${
+                    isDashing ? 'dashing' : ''
+                  } ${isCharging ? 'charging' : ''}`}
+                  style={{
+                    left: `${playerPosition.x}px`,
+                    top: `${playerPosition.y}px`,
+                  }}
+                />
 
-                  {projectiles.map(projectile => {
-                    const gunConfig = GUNS[currentGun];
-                    const projectileConfig = projectile.isCharged
-                      ? gunConfig.charged || gunConfig.normal
-                      : gunConfig.normal;
+                {/* Projectiles */}
+                {projectiles.map((projectile) => {
+                  const gunConfig = GUNS[currentGun];
+                  const projectileConfig = projectile.isCharged
+                    ? gunConfig.charged || gunConfig.normal
+                    : gunConfig.normal;
 
-                    return (
-                      <div
-                        key={projectile.id}
-                          className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
-                        style={{
-                          left: `${projectile.position.x}px`,
-                          top: `${projectile.position.y}px`,
-                          width: `${projectileConfig.size}px`,
-                            height: `${projectileConfig.size}px`
-                        }}
-                      >
-                        {projectileConfig.displayText}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
+                  return (
+                    <div
+                      key={projectile.id}
+                      className={`debug-shot gun-${currentGun} ${
+                        projectile.isCharged ? 'charged' : 'normal'
+                      }`}
+                      style={{
+                        left: `${projectile.position.x}px`,
+                        top: `${projectile.position.y}px`,
+                        width: `${projectileConfig.size}px`,
+                        height: `${projectileConfig.size}px`,
+                      }}>
+                      {projectileConfig.displayText}
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
         </div>
+
+        {/* Pause Menu */}
+        {gameStatus === 'playing' && isPaused && (
+          <PauseMenu
+            onResume={() => dispatch(togglePause())}
+            isLeaderboardOpen={isLeaderboardOpen}
+            isStatsOpen={isStatsOpen}
+          />
+        )}
       </div>
     </Layout>
   );

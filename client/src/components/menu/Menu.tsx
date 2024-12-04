@@ -12,6 +12,12 @@ const Menu = () => {
         <Link to="/leaderboard" className="link">
           <h2>Leaderboard</h2>
         </Link>
+        <Link to="/login" className="link">
+          <h2>Login</h2>
+        </Link>
+        <Link to="/signup" className="link">
+          <h2>Signup</h2>
+        </Link>
       </div>
     </div>
   );
