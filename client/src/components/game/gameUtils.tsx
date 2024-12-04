@@ -461,7 +461,8 @@ export const useEnemyMovement = (cameraTransform: { x: number; y: number }): voi
                 )),
             },
             health: 100,
-            speed: enemyConfig.baseSpeed,
+          speed: enemyConfig.baseSpeed,
+          damage: enemyConfig.damage,
             type: randomType,
         };
 
