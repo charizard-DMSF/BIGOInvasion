@@ -408,11 +408,6 @@ const Game: React.FC = () => {
       <Hud />
       <div className="game-container">
         <div className="game-board">
-                {/* Level Progress Display */}
-                <div className="level-progress">
-                  <h3>Level {currentLevel}</h3>
-                  <p>Kills: {killCount} / {currentLevelConfig.requiredKills}</p>
-                </div>
           <div
             className="line-numbers"
             style={{ transform: `translateY(${cameraTransform.y}px)` }}>

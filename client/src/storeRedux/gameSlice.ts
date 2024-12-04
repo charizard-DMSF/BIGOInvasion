@@ -106,9 +106,6 @@ const gameSlice = createSlice({
     updateScore: (state, action: PayloadAction<number>) => {
       state.score = action.payload;
     },
-    updateLevel: (state, action: PayloadAction<number>) => {
-      state.level = action.payload;
-    },
     toggleStore: (state) => {
       state.inStore = !state.inStore;
     },
@@ -211,7 +208,6 @@ export const {
   updateHealth,
   damagePlayer,
   updateScore,
-  updateLevel,
   toggleStore,
   updateMathbucks,
   incrementMathbucks,

@@ -13,12 +13,13 @@ import { Enemy } from '../../storeRedux/gameSlice';
 import { EnemyTypeKey } from './Enemy';
 import { ENEMY_TYPES } from './Enemy';
 
-
+// game viewport dimensions - defines playable area
 const VIEWPORT = {
     WIDTH: 1200,
     HEIGHT: 800,
 };
 
+// defines what each level needs and contains
 interface LevelConfig {
     requiredKills: number;
     spawnInterval: number;  // milliseconds
@@ -30,6 +31,8 @@ interface LevelConfig {
     mathbucksReward: number;
 }
 
+// level configurations getting progressively harder
+// each level needs more kills, spawns enemies faster, and has more variety
 export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
     1: {
         requiredKills: 15,
@@ -103,35 +106,43 @@ export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
     }
 };
 
+// main level management hook that handles game progression
 export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
     const dispatch = useAppDispatch();
+    // grab all our game state from redux
     const currentLevel = useAppSelector(state => state.game.currentLevel);
     const killCount = useAppSelector(state => state.game.levelKillCount);
     const gameStatus = useAppSelector(state => state.game.gameStatus);
     const mathbucks = useAppSelector(state => state.game.mathbucks);
 
-
+    // tracks if we're in between levels
     const [isLevelTransitioning, setIsLevelTransitioning] = useState(false);
 
+    // helper to get current level settings
     const getCurrentLevelConfig = useCallback(() => {
         return LEVEL_CONFIGS[currentLevel];
     }, [currentLevel]);
 
+    // handles what happens when player defeats an enemy
     const handleEnemyDefeat = useCallback(() => {
         dispatch(incrementKillCount());
         const config = getCurrentLevelConfig();
 
+        // check if we've hit the kill requirement for level completion
         if (killCount + 1 >= config.requiredKills) {
             handleLevelComplete();
         }
     }, [killCount, currentLevel, dispatch, getCurrentLevelConfig]);
 
+    // manages level completion logic
     const handleLevelComplete = useCallback(() => {
         setIsLevelTransitioning(true);
 
+        // give player their reward
         const config = getCurrentLevelConfig();
         dispatch(updateMathbucks(mathbucks + config.mathbucksReward));
 
+        // wait a bit then either advance to next level or declare victory
         setTimeout(() => {
             if (currentLevel < 7) {
                 dispatch(advanceLevel());
@@ -143,12 +154,14 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
         }, 3000);
     }, [currentLevel, dispatch, mathbucks, getCurrentLevelConfig]);
 
+    // handles enemy spawning based on level configuration
     useEffect(() => {
         let spawnInterval: NodeJS.Timeout;
 
         if (gameStatus === 'playing' && !isLevelTransitioning) {
             const config = getCurrentLevelConfig();
 
+            // spawns a new enemy with random position and type based on level weights
             const spawnEnemy = () => {
                 const config = getCurrentLevelConfig();
                 const enemyType = getEnemyTypeForSpawn();
@@ -171,9 +184,11 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
                 dispatch(addEnemy(newEnemy));
             };
 
+            // set up the spawn interval based on level config
             spawnInterval = setInterval(spawnEnemy, config.spawnInterval);
         }
 
+        // cleanup interval when component unmounts or game state changes
         return () => {
             if (spawnInterval) {
                 clearInterval(spawnInterval);
@@ -181,11 +196,13 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
         };
     }, [gameStatus, isLevelTransitioning, dispatch, getCurrentLevelConfig, cameraTransform]);
 
+    // randomly selects enemy type based on level configuration weights
     const getEnemyTypeForSpawn = useCallback(() => {
         const config = getCurrentLevelConfig();
         const rand = Math.random();
         let cumulativeWeight = 0;
 
+        // use weighted random selection based on level config
         for (const [type, weight] of Object.entries(config.enemyTypes)) {
             cumulativeWeight += weight;
             if (rand <= cumulativeWeight) {
@@ -193,9 +210,11 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
             }
         }
 
+        // fallback to basic enemy type
         return 'basic' as EnemyTypeKey;
     }, [getCurrentLevelConfig]);
 
+    // expose necessary values and functions to component
     return {
         currentLevelConfig: getCurrentLevelConfig(),
         isLevelTransitioning,

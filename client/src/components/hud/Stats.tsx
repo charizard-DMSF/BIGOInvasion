@@ -22,17 +22,23 @@ const Hud = () => {
     } = gameState;
 
     // Get the required kills from level config
+    interface LevelConfig {
+        requiredKills: number;
+    }
+
+    const LEVEL_CONFIGS: { [key: string]: LevelConfig } = {
+        "1": { requiredKills: 15 },
+        "2": { requiredKills: 25 },
+        "3": { requiredKills: 40 },
+        "4": { requiredKills: 60 },
+        "5": { requiredKills: 80 },
+        "6": { requiredKills: 100 },
+        "7": { requiredKills: 150 }
+    };
+
     const currentLevelConfig = useAppSelector(state => {
-        const LEVEL_CONFIGS = {
-            1: { requiredKills: 15 },
-            2: { requiredKills: 25 },
-            3: { requiredKills: 40 },
-            4: { requiredKills: 60 },
-            5: { requiredKills: 80 },
-            6: { requiredKills: 100 },
-            7: { requiredKills: 150 }
-        };
-        return LEVEL_CONFIGS[currentLevel] || LEVEL_CONFIGS[1];
+        const level = state.game.currentLevel.toString();
+        return LEVEL_CONFIGS[level] || LEVEL_CONFIGS["1"];
     });
 
     const healthPercentage = (playerHealth / 100) * 100;
