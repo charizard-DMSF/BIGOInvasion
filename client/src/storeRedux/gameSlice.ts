@@ -31,7 +31,8 @@ interface GameState {
   playerPosition: Position;
   playerHealth: number;
   score: number;
-  level: number;
+  currentLevel: number;
+  levelKillCount: number;
   shields: number;
   nukes: number;
   inStore: boolean;
@@ -45,7 +46,7 @@ interface GameState {
   isPaused: boolean;
   isLeaderboardOpen: boolean;
   isStatsOpen: boolean;
-  gameStatus: 'menu' | 'playing' | 'gameOver';
+  gameStatus: 'menu' | 'playing' | 'gameOver' | 'victory';
   stats: {
     [key: string]: number;
   };
@@ -56,9 +57,10 @@ interface GameState {
 
 const initialState: GameState = {
   playerPosition: { x: 600, y: 400 },
-  playerHealth: 50,
-  score: 500,
-  level: 3,
+  playerHealth: 100,
+  score: 0,
+  currentLevel: 1,
+  levelKillCount: 0,
   shields: 5,
   nukes: 10,
   inStore: false,
@@ -108,14 +110,14 @@ const gameSlice = createSlice({
     updateScore: (state, action: PayloadAction<number>) => {
       state.score = action.payload;
     },
-    updateLevel: (state, action: PayloadAction<number>) => {
-      state.level = action.payload;
-    },
     toggleStore: (state) => {
       state.inStore = !state.inStore;
     },
     updateMathbucks: (state, action: PayloadAction<number>) => {
       state.mathbucks = action.payload;
+    },
+    incrementMathbucks: (state, action: PayloadAction<number>) => {
+      state.mathbucks += action.payload;
     },
     upgradeStat: (
       state,
@@ -126,12 +128,17 @@ const gameSlice = createSlice({
     },
     setGameStatus: (
       state,
-      action: PayloadAction<'menu' | 'playing' | 'gameOver'>
+      action: PayloadAction<'menu' | 'playing' | 'gameOver' | 'victory'>
     ) => {
       state.gameStatus = action.payload;
     },
     resetGame: (state) => {
-      return { ...initialState, gameStatus: 'playing' };
+      return {
+        ...initialState,
+        gameStatus: 'playing',
+        currentLevel: 1,
+        levelKillCount: 0
+      };
     },
     addProjectile: (state, action: PayloadAction<Projectile>) => {
       state.projectiles.push(action.payload);
@@ -171,24 +178,31 @@ const gameSlice = createSlice({
       const enemy = state.enemies.find((e) => e.id === action.payload.id);
       if (enemy) {
         enemy.health -= action.payload.damage;
-        // if (enemy.health <= 0) {
-        //   state.enemies = state.enemies.filter(
-        //     (e) => e.id !== action.payload.id
-        //   );
-        //   state.score += 10;
-        //   state.mathbucks += 10;
-        // }
       }
     },
     defeatEnemy: (state, action: PayloadAction<string>) => {
       state.enemies = state.enemies.filter((e) => e.id !== action.payload);
       state.score += 10;
       state.mathbucks += 10;
+      // Kill count is now handled separately
     },
     removeEnemy: (state, action: PayloadAction<string>) => {
       state.enemies = state.enemies.filter(
         (enemy) => enemy.id !== action.payload
       );
+    },
+    incrementKillCount: (state) => {
+      state.levelKillCount += 1;
+    },
+    resetKillCount: (state) => {
+      state.levelKillCount = 0;
+    },
+    advanceLevel: (state) => {
+      if (state.currentLevel < 7) {
+        state.currentLevel += 1;
+      } else {
+        state.gameStatus = 'victory';
+      }
     },
   },
 });
@@ -198,9 +212,9 @@ export const {
   updateHealth,
   damagePlayer,
   updateScore,
-  updateLevel,
   toggleStore,
   updateMathbucks,
+  incrementMathbucks,
   upgradeStat,
   setGameStatus,
   resetGame,
@@ -216,6 +230,9 @@ export const {
   damageEnemy,
   defeatEnemy,
   removeEnemy,
+  incrementKillCount,
+  resetKillCount,
+  advanceLevel,
 } = gameSlice.actions;
 
 export default gameSlice.reducer;
