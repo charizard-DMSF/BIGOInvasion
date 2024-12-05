@@ -1,11 +1,6 @@
 import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
-import {
-  updateMathbucks,
-  upgradeStat,
-  toggleStore,
-  unlockGun,
-} from '../../storeRedux/gameSlice';
+import { updateMathbucks, upgradeStat, toggleStore, unlockGun } from '../../storeRedux/gameSlice';
 import { GUNS } from '../game/Guns';
 
 const Store: React.FC = () => {

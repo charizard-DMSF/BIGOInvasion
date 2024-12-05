@@ -31,21 +31,13 @@ type GameStatus = 'menu' | 'playing' | 'gameOver' | 'victory';
  * @returns Coordinates for where tha camera should be locking in
  */
 export const useCamera = (playerPosition: { x: number; y: number }) => {
-  const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
-  const [visibleLineRange, setVisibleLineRange] = useState({
-    start: 0,
-    end: 50,
-  });
+    const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
+    const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 100 });
 
-  const updateCamera = useCallback(() => {
-    const targetY = Math.max(
-      0,
-      Math.min(5200, playerPosition.y - VIEWPORT.HEIGHT / 2)
-    );
-    const targetX = Math.max(
-      0,
-      Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2)
-    );
+    const updateCamera = useCallback(() => {
+        // calculate camera position with bounds checking to prevent out-of-bounds scrolling
+        const targetY = Math.max(0, Math.min(5850, playerPosition.y - VIEWPORT.HEIGHT / 3));
+        const targetX = Math.max(0, Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2));
 
     const startLine = Math.max(0, Math.floor(targetY / 12));
     const endLine = Math.min(500, startLine + Math.ceil(VIEWPORT.HEIGHT / 12));
@@ -110,10 +102,12 @@ export const usePlayerMovement = (
         Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
       );
 
-      const newY = Math.max(
-        SIZE / 2,
-        Math.min(540 * 12, playerPosition.y + verticalMovement)
-      );
+        const newY = Math.max(
+            //top boundary
+            SIZE / 2,
+            //bottom 
+            Math.min(509 * 12, playerPosition.y + verticalMovement)
+        );
 
       dispatch(movePlayer({ x: newX, y: newY }));
       updateCamera();
@@ -303,28 +297,28 @@ export const renderLineNumbers = (
   cameraTransform: { x: number; y: number }
 ) => {
   const numbers = [];
-  for (let i = 1; i < totalLines; i++) {
+  // iterate through all possible line numbers
+  for (let i = 1; i <= totalLines; i++) {
+    // calculate position for current line
+    // subtract 1 from i since line counting starts at 1 but positions start at 0
     const linePosition = (i - 1) * lineHeight;
 
     const isVisible =
       linePosition >= -cameraTransform.y &&
       linePosition <= -cameraTransform.y + VIEWPORT.HEIGHT;
 
-    if (isVisible) {
-      numbers.push(
-        <span
-          key={i}
-          style={{
-            position: 'absolute',
-            top: `${linePosition}px`,
-          }}>
-          {i}
-        </span>
-      );
+        // only render numbers for visible lines
+        if (isVisible) {
+            // create span element for line number with:
+            // unique key for React reconciliation
+            // absolute positioning for precise placement
+            // top position set to exact pixel location
+            numbers.push(<div>{i}</div>);
+        }
     }
-  }
-  return numbers;
+    return numbers;
 };
+
 
 /**
  * renderEnemies creates React components for each enemy in the provided array

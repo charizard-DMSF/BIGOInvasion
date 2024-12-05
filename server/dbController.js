@@ -23,6 +23,19 @@ getTopScores: async (req, res, next) => {
     next();
 },
 
+// Get username based on the user id
+getUserName: async (req, res, next) => {
+    console.log('userName func hit db Controler')
+    const { data, error } = await supabase
+    .from('User')
+    .select('username')
+    .eq('user_id', req.body.userId);
+    console.log('data', data);
+    res.locals = data;
+
+  next();
+}
+
 }
 
 export default dbController

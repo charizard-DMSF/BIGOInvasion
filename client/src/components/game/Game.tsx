@@ -16,6 +16,7 @@ import {
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
+import { Layout } from 'antd';
 import {
   useCamera,
   usePlayerMovement,
@@ -403,10 +404,23 @@ const Game: React.FC = () => {
     return <Store />;
   }
 
-  // main render
+  const { Header, Footer, Content } = Layout;
+
+  const layoutStyle = {
+    borderRadius: 8,
+    overflow: 'hidden',
+    width: 'calc(100% - 8px)',
+    maxWidth: 'calc(100% - 8px)',
+  };
+
+  const boundaryPadding = 20;
+
   return (
-    <>
-      <Hud />
+      <Layout style={layoutStyle}>
+      <Header className='headerStyle'>
+        <Hud />
+      </Header>
+      <div className='content-container'></div>
       <div className="game-container">
         {/* Level transition overlay */}
         {gameStatus === 'playing' && isLevelTransitioning && (
@@ -441,9 +455,9 @@ const Game: React.FC = () => {
             ref={worldRef}
             className="game-world"
             style={{
-              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`,
-            }}>
-            {/* Menu state */}
+              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
+            }}
+            >
             {gameStatus === 'menu' && (
               <div className="menu-container">
                 <button onClick={handleGameStart}>Start Game</button>
@@ -498,7 +512,7 @@ const Game: React.FC = () => {
           />
         )}
       </div>
-    </>
+    </Layout>
   );
 };
 
