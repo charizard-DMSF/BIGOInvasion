@@ -319,6 +319,7 @@ body {
   background-color: red;
   position: absolute;
   border-radius: 50%;
+  user-select: none;
   /* transform-origin: center; */
   /* transition: all 0.05s linear; */
   /* box-shadow: 0 0 10px red; */

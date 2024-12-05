@@ -93,9 +93,13 @@ const gameSlice = createSlice({
       state.playerPosition = action.payload;
     },
     updateHealth: (state, action: PayloadAction<number>) => {
+      console.log('state.playerHealth 1:', state.playerHealth);
       state.playerHealth = action.payload;
     },
     damagePlayer: (state, action: PayloadAction<number>) => {
+      console.log('state :', state);
+      console.log('state.playerHealth :', state.playerHealth);
+      console.log('action.payload :', action.payload);
       state.playerHealth = Math.max(0, state.playerHealth - action.payload);
       if (state.playerHealth <= 0) {
         state.gameStatus = 'gameOver';

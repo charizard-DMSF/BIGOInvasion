@@ -20,21 +20,10 @@ app.get('/', async (req, res) => {
   res.json(data);
 });
 
-
-app.get('/leaderBoard', async (req, res) => {
-  const { data, error } = await supabase.from('HighScore')
-  .select('name, User!inner(username)')
-  .eq('User.name', 'Indonesia');
-app.get('/leaders', dbController.getTopScores, async (req, res) => {
-  console.log("in the server function")
-  res.status(500)
-});
-
-
 app.post('login');
 app.post('/createUser');
 app.get('*', () => res.sendStatus(404)) //is that how 404's are done?
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
-})
+});

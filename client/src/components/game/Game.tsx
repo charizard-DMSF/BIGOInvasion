@@ -418,7 +418,7 @@ const Game: React.FC = () => {
       <div className='content-container'></div>
       <div className="game-container">
         <div className="game-board">
-          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+          <div className="line-numbers">
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
           <div
