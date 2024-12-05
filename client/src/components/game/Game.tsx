@@ -408,10 +408,33 @@ const Game: React.FC = () => {
     <>
       <Hud />
       <div className="game-container">
+        {/* Level transition overlay */}
+        {gameStatus === 'playing' && isLevelTransitioning && (
+          <div className="level-transition">
+            <h2>Level {currentLevel} Complete!</h2>
+            <p>Reward: {currentLevelConfig.mathbucksReward} Mathbucks</p>
+            {currentLevel < 7 && <p>Preparing Level {currentLevel + 1}...</p>}
+          </div>
+        )}
+
+        {/* Victory state */}
+        {gameStatus === 'victory' && (
+          <div className="menu-container">
+            <h2>Congratulations!</h2>
+            <p>You've completed all levels!</p>
+            <button onClick={handleCompleteReset}>Play Again</button>
+          </div>
+        )}
+
+        {/* Game over state */}
+        {gameStatus === 'gameOver' && (
+          <div className="menu-container">
+            <button onClick={handleCompleteReset}>Try Again</button>
+          </div>
+        )}
+
         <div className="game-board">
-          <div
-            className="line-numbers"
-            style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
           <div
@@ -427,39 +450,13 @@ const Game: React.FC = () => {
               </div>
             )}
 
-            {/* Game over state */}
-            {gameStatus === 'gameOver' && (
-              <div className="menu-container">
-                <button onClick={handleCompleteReset}>Try Again</button>
-              </div>
-            )}
-
-            {/* Victory state */}
-            {gameStatus === 'victory' && (
-              <div className="menu-container">
-                <h2>Congratulations!</h2>
-                <p>You've completed all levels!</p>
-                <button onClick={handleCompleteReset}>Play Again</button>
-              </div>
-            )}
-
             {/* Playing state */}
             {gameStatus === 'playing' && (
               <>
-                {/* Level transition overlay */}
-                {isLevelTransitioning && (
-                  <div className="level-transition">
-                    <h2>Level {currentLevel} Complete!</h2>
-                    <p>Reward: {currentLevelConfig.mathbucksReward} Mathbucks</p>
-                    {currentLevel < 7 && <p>Preparing Level {currentLevel + 1}...</p>}
-                  </div>
-                )}
-
                 {renderEnemies(enemies)}
                 {/* Player */}
                 <div
-                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''
-                    } ${isCharging ? 'charging' : ''}`}
+                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
                   style={{
                     left: `${playerPosition.x}px`,
                     top: `${playerPosition.y}px`,
@@ -476,8 +473,7 @@ const Game: React.FC = () => {
                   return (
                     <div
                       key={projectile.id}
-                      className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'
-                        }`}
+                      className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
                       style={{
                         left: `${projectile.position.x}px`,
                         top: `${projectile.position.y}px`,
@@ -488,7 +484,6 @@ const Game: React.FC = () => {
                     </div>
                   );
                 })}
-
               </>
             )}
           </div>

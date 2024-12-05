@@ -1096,17 +1096,18 @@
 /* levels */
 
 .level-transition {
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: rgba(30, 30, 30, 0.9);
+  z-index: 50;
+  background-color: rgba(0, 0, 0, 0.8);
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 0.5rem;
+  border: 2px solid #4CAF50;
+  color: white;
   text-align: center;
-  border: 2px solid #4caf50;
-  color: #fff;
-  z-index: 100;
+  pointer-events: none;
 }
 
 .level-transition h2 {

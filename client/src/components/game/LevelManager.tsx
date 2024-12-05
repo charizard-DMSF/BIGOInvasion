@@ -42,7 +42,7 @@ interface LevelConfig {
 export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
     1: {
         requiredKills: 15,
-        spawnInterval: 50,    // starting with faster initial spawns
+        spawnInterval: 2000,    // starting with faster initial spawns
         enemyTypes: {
             basic: 1,           // level 1: only basic enemies
             fast: 0,
@@ -125,6 +125,8 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
     const killCount = useAppSelector(state => state.game.levelKillCount);
     const gameStatus = useAppSelector(state => state.game.gameStatus);
     const mathbucks = useAppSelector(state => state.game.mathbucks);
+    const isPaused = useAppSelector(state => state.game.isPaused);
+    const inStore = useAppSelector(state => state.game.inStore);
 
     // local state for level transition management
     const [isLevelTransitioning, setIsLevelTransitioning] = useState(false);
@@ -217,17 +219,16 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
     useEffect(() => {
         let spawnInterval: NodeJS.Timeout;
 
-        if (gameStatus === 'playing' && !isLevelTransitioning) {
+        // clear enemies ONLY when starting level 1
+        if (gameStatus === 'playing' && currentLevel === 1 && !isLevelTransitioning) {
+            dispatch(updateEnemies([]));
+        }
+
+        // spawn enemies only when game is active and not paused/in store
+        if (gameStatus === 'playing' && !isLevelTransitioning && !isPaused && !inStore) {
             const config = getCurrentLevelConfig();
 
-            // clear any existing enemies when starting
-            if (currentLevel === 1) {
-                dispatch(updateEnemies([]));
-            }
-
-            // single spawn interval
             spawnInterval = setInterval(() => {
-                // only spawn if we haven't met the level requirements
                 if (killCount < config.requiredKills) {
                     const enemyType = getEnemyTypeForSpawn();
                     const enemyConfig = ENEMY_TYPES[enemyType].config;
@@ -251,13 +252,12 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
             }, config.spawnInterval);
         }
 
-        // cleanup interval on unmount or state change
         return () => {
             if (spawnInterval) {
                 clearInterval(spawnInterval);
             }
         };
-    }, [gameStatus, isLevelTransitioning, currentLevel]); 
+    }, [gameStatus, isLevelTransitioning, currentLevel, isPaused, inStore]);
 
     // return level management interface
     return {
