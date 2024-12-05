@@ -42,11 +42,11 @@ interface LevelConfig {
 export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
     1: {
         requiredKills: 15,
-        spawnInterval: 2000,    // starting with faster initial spawns
+        spawnInterval: 50,    // starting with faster initial spawns
         enemyTypes: {
             basic: 1,           // level 1: only basic enemies
             fast: 0,
-            tank: 0
+            tank: 0,
         },
         mathbucksReward: 500
     },
@@ -192,7 +192,14 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
         const config = getCurrentLevelConfig();
         dispatch(updateMathbucks(mathbucks + config.mathbucksReward));
 
-        // transition after delay
+        // transition with a shorter delay and gradual fade
+        const transitionDuration = 1000; // 1 second
+        const transitionDelay = 500; // 0.5 second delay
+
+        setTimeout(() => {
+            setIsLevelTransitioning(false);
+        }, transitionDelay + transitionDuration);
+
         setTimeout(() => {
             if (currentLevel < 7) {
                 dispatch(advanceLevel());
@@ -200,10 +207,8 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
             } else {
                 dispatch(setGameStatus('victory'));
             }
-            setIsLevelTransitioning(false);
-        }, 3000); // 3 second transition delay
+        }, transitionDelay + transitionDuration);
     }, [currentLevel, dispatch, mathbucks, getCurrentLevelConfig]);
-
     /*
       manages enemy spawning based on level configuration
      */
@@ -220,7 +225,7 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
                 dispatch(updateEnemies([]));
             }
 
-            // single spawn interval, no initial spawn
+            // single spawn interval
             spawnInterval = setInterval(() => {
                 // only spawn if we haven't met the level requirements
                 if (killCount < config.requiredKills) {
@@ -252,7 +257,7 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
                 clearInterval(spawnInterval);
             }
         };
-    }, [gameStatus, isLevelTransitioning, currentLevel]); // Reduced dependency array
+    }, [gameStatus, isLevelTransitioning, currentLevel]); 
 
     // return level management interface
     return {
