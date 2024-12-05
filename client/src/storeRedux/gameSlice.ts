@@ -67,7 +67,7 @@ const initialState: GameState = {
   shields: 5,
   nukes: 10,
   inStore: false,
-  mathbucks: 100,
+  mathbucks: 5000,
   enemies: [],
   SIZE: 32,
   projectiles: [],
@@ -113,6 +113,9 @@ const gameSlice = createSlice({
       );
     },
     damagePlayer: (state, action: PayloadAction<number>) => {
+      console.log('state :', state);
+      console.log('state.playerHealth :', state.playerHealth);
+      console.log('action.payload :', action.payload);
       state.playerHealth = Math.max(0, state.playerHealth - action.payload);
       if (state.playerHealth <= 0) {
         state.gameStatus = 'gameOver';
