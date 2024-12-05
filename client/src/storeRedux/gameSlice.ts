@@ -48,7 +48,10 @@ interface GameState {
   isStatsOpen: boolean;
   gameStatus: 'menu' | 'playing' | 'gameOver' | 'victory';
   stats: {
-    [key: string]: number;
+    [key: string]: {
+      value: number;
+      max: number;
+    };
   };
   powerUps: {
     [key: string]: number;
@@ -57,14 +60,14 @@ interface GameState {
 
 const initialState: GameState = {
   playerPosition: { x: 600, y: 400 },
-  playerHealth: 100,
+  playerHealth: 50,
   score: 0,
   currentLevel: 1,
   levelKillCount: 0,
   shields: 5,
   nukes: 10,
   inStore: false,
-  mathbucks: 10000,
+  mathbucks: 100,
   enemies: [],
   SIZE: 32,
   projectiles: [],
@@ -76,10 +79,18 @@ const initialState: GameState = {
   unlockedGuns: ['basic'],
   gameStatus: 'menu',
   stats: {
-    HEALTH: 1,
-    SPEED: 8,
-    DASH_SPEED_MULTIPLIER: 3,
-    DASH_DURATION_MS: 150,
+    SPEED: {
+      value: 1,
+      max: 5,
+    },
+    DASH_SPEED_MULTIPLIER: {
+      value: 1,
+      max: 5,
+    },
+    DASH_DURATION_MS: {
+      value: 150,
+      max: 3,
+    },
   },
   powerUps: {
     Shield: 6,
@@ -95,7 +106,11 @@ const gameSlice = createSlice({
       state.playerPosition = action.payload;
     },
     updateHealth: (state, action: PayloadAction<number>) => {
-      state.playerHealth = action.payload;
+      const maxHealth = 100;
+      state.playerHealth = Math.min(
+        maxHealth,
+        state.playerHealth + action.payload
+      );
     },
     damagePlayer: (state, action: PayloadAction<number>) => {
       state.playerHealth = Math.max(0, state.playerHealth - action.payload);
@@ -120,7 +135,9 @@ const gameSlice = createSlice({
       action: PayloadAction<{ stat: string; level: number }>
     ) => {
       const { stat, level } = action.payload;
-      state.stats[stat] = level;
+      if (state.stats[stat].value < state.stats[stat].max) {
+        state.stats[stat].value = level;
+      }
     },
     setGameStatus: (
       state,
@@ -133,7 +150,7 @@ const gameSlice = createSlice({
         ...initialState,
         gameStatus: 'playing',
         currentLevel: 1,
-        levelKillCount: 0
+        levelKillCount: 0,
       };
     },
     addProjectile: (state, action: PayloadAction<Projectile>) => {

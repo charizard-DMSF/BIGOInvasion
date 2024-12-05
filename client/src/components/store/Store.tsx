@@ -5,6 +5,7 @@ import {
   upgradeStat,
   toggleStore,
   unlockGun,
+  updateHealth,
 } from '../../storeRedux/gameSlice';
 import { GUNS } from '../game/Guns';
 
@@ -30,6 +31,13 @@ const Store: React.FC = () => {
 
   const handleBack = () => {
     dispatch(toggleStore());
+  };
+
+  const handleHealthRefill = () => {
+    if (mathbucks >= 100) {
+      dispatch(updateHealth(50));
+      dispatch(updateMathbucks(mathbucks - 100));
+    }
   };
 
   return (
@@ -62,16 +70,25 @@ const Store: React.FC = () => {
         </div>
 
         <h2 className="section-title">Stats Upgrades</h2>
-        {Object.entries(stats).map(([stat, level]) => (
-          <div key={stat} className="stats-row">
+        <div className="stats-row">
+          <div className="stat-name">HEALTH REFILL (+50)</div>
+          <button
+            className="unlock-button"
+            disabled={mathbucks < 100}
+            onClick={() => handleHealthRefill()}>
+            Unlock! (100MB)
+          </button>
+        </div>
+        {Object.entries(stats).map(([statKey, stat]) => (
+          <div key={statKey} className="stats-row">
             <div className="stat-name">
-              {stat} (Level {level})
+              {statKey} (Level {stat.value})
             </div>
             <button
               className="unlock-button"
-              onClick={() => handleUpgrade(stat, level)}
+              onClick={() => handleUpgrade(statKey, stat.value)}
               disabled={mathbucks < 100}>
-              Unlock! (100 MB)
+              {stat.value >= stat.max ? 'MAX LEVEL!' : 'Unlock! (100 MB)'}
             </button>
           </div>
         ))}

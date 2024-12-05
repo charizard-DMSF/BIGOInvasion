@@ -100,8 +100,12 @@ export const usePlayerMovement = (
         verticalMovement /= Math.sqrt(2);
       }
 
+      const BASE_SPEED = 5;
+
       const currentSpeed =
-        PLAYER.SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
+        (BASE_SPEED + PLAYER.SPEED.value * 1) *
+        (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER.value : 1);
+
       horizontalMovement *= currentSpeed * (deltaTime / 16.667);
       verticalMovement *= currentSpeed * (deltaTime / 16.667);
 
@@ -118,7 +122,17 @@ export const usePlayerMovement = (
       dispatch(movePlayer({ x: newX, y: newY }));
       updateCamera();
     },
-    [dispatch, playerPosition, isDashing, gameStatus, inStore, updateCamera, PLAYER.SPEED, PLAYER.DASH_SPEED_MULTIPLIER, SIZE]
+    [
+      dispatch,
+      playerPosition,
+      isDashing,
+      gameStatus,
+      inStore,
+      updateCamera,
+      PLAYER.SPEED,
+      PLAYER.DASH_SPEED_MULTIPLIER,
+      SIZE,
+    ]
   );
 
   return { isMoving, setIsMoving, updatePlayerPosition };
@@ -197,11 +211,11 @@ export const usePlayerAbilities = (
 
     setTimeout(() => {
       setIsDashing(false);
-    }, PLAYER.DASH_DURATION_MS);
+    }, PLAYER.DASH_DURATION_MS.value);
 
     setTimeout(() => {
       setCanDash(true);
-    }, PLAYER.DASH_DURATION_MS + PLAYER.DASH_COOLDOWN_MS);
+    }, PLAYER.DASH_DURATION_MS.value + PLAYER.DASH_COOLDOWN_MS.value);
   }, [canDash, gameStatus, PLAYER.DASH_DURATION_MS, PLAYER.DASH_COOLDOWN_MS]);
 
   const startProjectileCharge = useCallback(
@@ -259,7 +273,7 @@ export const usePlayerAbilities = (
       inStore,
       dispatch,
       cameraTransform,
-      gunConfig
+      gunConfig,
     ]
   );
 
