@@ -349,6 +349,7 @@ const Game: React.FC = () => {
         e.preventDefault();
         activateDash();
       } else if (e.button === 0) {
+        e.preventDefault();
         startProjectileCharge(e);
       }
     };
