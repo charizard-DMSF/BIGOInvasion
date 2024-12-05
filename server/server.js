@@ -38,4 +38,4 @@ app.get('*', () => res.sendStatus(404)) //is that how 404's are done?
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
-})
+});
