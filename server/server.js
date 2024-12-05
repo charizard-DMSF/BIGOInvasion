@@ -6,6 +6,8 @@ const app = express();
 dotenv.config();
 const port = 8080;
 
+app.use(express.json());
+
 app.get('/leaders', dbController.getTopScores, async (req, res) => {
   res.status(200).json({'data': res.locals})
 });

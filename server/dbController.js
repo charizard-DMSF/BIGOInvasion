@@ -4,11 +4,11 @@ import supabase from './dbModel.js'
 const dbController = {
 // Add High Score
  addHighScore: async (req, res, next) => {
-    console.log(req.body)
+    console.log(req.body.userId)
     const { data, error } = await supabase
         .from('HighScores')
-        .insert([{ user_id: 1, score: 70000 }]);
-        next()
+        .insert([{ user_id: req.body.userId, score: req.body.score }]);
+        next();
 },
 // Get top 3 high scores
 getTopScores: async (req, res, next) => {
@@ -17,8 +17,8 @@ getTopScores: async (req, res, next) => {
         .select('*')
         .order('score', { ascending: false })
         .limit(3);
-        console.log('data', data)
-        res.locals = data
+        console.log('data', data);
+        res.locals = data;
 
     next();
 },
