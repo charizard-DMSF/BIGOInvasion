@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppSelector } from '../../storeRedux/store';
-import { Heart, Trophy, Target, Shield, Bomb, Crosshair, Coins } from 'lucide-react';
+import { Heart, Trophy, Target, Shield, Bomb, Crosshair, Coins, Skull } from 'lucide-react';
 
 const Hud = () => {
     // Add component render debug
@@ -13,12 +13,33 @@ const Hud = () => {
     const {
         playerHealth,
         score,
-        level,
+        currentLevel,
         shields,
         nukes,
         currentGun,
-        mathbucks
+        mathbucks,
+        levelKillCount
     } = gameState;
+
+    // Get the required kills from level config
+    interface LevelConfig {
+        requiredKills: number;
+    }
+
+    const LEVEL_CONFIGS: { [key: string]: LevelConfig } = {
+        "1": { requiredKills: 15 },
+        "2": { requiredKills: 25 },
+        "3": { requiredKills: 40 },
+        "4": { requiredKills: 60 },
+        "5": { requiredKills: 80 },
+        "6": { requiredKills: 100 },
+        "7": { requiredKills: 150 }
+    };
+
+    const currentLevelConfig = useAppSelector(state => {
+        const level = state.game.currentLevel.toString();
+        return LEVEL_CONFIGS[level] || LEVEL_CONFIGS["1"];
+    });
 
     const healthPercentage = (playerHealth / 100) * 100;
 
@@ -28,11 +49,6 @@ const Hud = () => {
         'spread': { name: 'Multi Logger', key: '2' },
         'sniper': { name: 'Stack Trace', key: '3' }
     };
-
-    // Debug gun name resolution
-    console.log('Current Gun:', currentGun);
-    console.log('Gun Config:', gunConfig);
-    console.log('Resolved Gun Info:', gunConfig[currentGun]);
 
     return (
         <div className="hud-container">
@@ -55,7 +71,13 @@ const Hud = () => {
                 </div>
                 <div className="level-display">
                     <Target size={20} color="#4CAF50" />
-                    <span className="level-value">{level}</span>
+                    <span className="level-value">{currentLevel}</span>
+                </div>
+                <div className="level-display">
+                    <Skull size={20} color="#4CAF50" />
+                    <span className="level-value">
+                        {levelKillCount}/{currentLevelConfig.requiredKills}
+                    </span>
                 </div>
             </div>
             <div className="hud-stats-right">
