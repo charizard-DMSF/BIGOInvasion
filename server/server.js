@@ -12,9 +12,6 @@ const port = 8080;
 app.use(cors())
 app.use(express.json());
 
-app.get('/leaders', dbController.getTopScores, async (req, res) => {
-  res.status(200).json({'data': res.locals})
-});
 
 app.get('/userName', dbController.getUserName, async (req, res) => {
   res.status(200).json({'data': res.locals})
@@ -30,17 +27,28 @@ app.get('/', async (req, res) => {
   const { data, error } = await supabase.from('User').select("*");
   console.log('data :', data);
   if (error)
-    return res.status(500).json({ error: error.message });
+  return res.status(500).json({ error: error.message });
   res.json(data);
 });
+
+
+/*
 app.get('/leaders', dbController.getTopScores, async (req, res) => {
   console.log("in the server function")
   res.status(500)
 });
+*/
+
+
+app.get('/leaders', dbController.getTopScores, async (req, res) => {
+  res.status(200).json({'data': res.locals})
+});
 
 
 
-app.post('/createUser', userController.createUser);
+app.post('/createUser', userController.createUser, async (req, res) =>{
+  res.sendStatus(200);
+});
 app.post('/login', userController.login);
 
 

@@ -8,7 +8,6 @@ const userController = {
     createUser: async (req, res, next) => {
         try {
             const { username, password } = req.body;
-
             const { data: existingUser } = await supabase
             .from('User')
             .select('*')
@@ -16,25 +15,25 @@ const userController = {
             .single();
             
             if (existingUser) {
-            return res.status(400).json({error: "Username already exists"})
+                return res.status(400).json({error: "Username already exists"})
             }
+            
 
             // hash password 
             const salt_factor = 10;
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
+            const hashedPassword = await bcrypt.hash(password, salt_factor);
 
 
+            console.log('Attempting insert with:', { username, hashedPassword });
             const { data: newUser, error } = await supabase
                 .from('User')
-                .insert([
-                    {
-                        username: username,
-                        password: hashedPassword,
-                        created_at: new Date().toISOString
-                    }
-                ])
+                .insert([{
+                    username: username,
+                    hashedPassword: hashedPassword,
+                }])
                 .select()
                 .single();
+            console.log('Supabase response:', { newUser, error });
             
             if (error) throw error;
                 
@@ -46,7 +45,7 @@ const userController = {
 
 
             res.status(201).json({
-                message: "User successfully created!".
+                message: "User successfully created!",
                 token,
                 user: {
                     id: newUser.id,
@@ -77,10 +76,12 @@ const userController = {
             }
 
             // check password => this'll be a boolean 
-            const validPassword = await bcrypt.compare(password, user.password);
+            
+            const validPassword = await bcrypt.compare(password, user.hashedPassword);
             if (!validPassword) {
                 return res.status(500).json({error: 'password incorrect'})
             }
+            
 
             // Create JWT token
             const token = jwt.sign(
@@ -94,7 +95,6 @@ const userController = {
                 user: {
                 id: user.id,
                 username: user.username,
-                email: user.email
                 }
             });        
         } catch (error) {
@@ -104,7 +104,7 @@ const userController = {
 
     authenticateToken: async (req, res, next) => {
         const authHeader = req.headers['authorization'];
-        const token = authHeader
+        const token = authHeader && authHeader.split(' ')[1]
 
         if (!token) {
             return res.status(400).json({ error: "acces token required" })
