@@ -29,6 +29,7 @@ import {
 } from './gameUtils';
 import { GUNS } from './Guns';
 import { useLevelManager } from './LevelManager';
+import { useSearchParams } from 'react-router-dom';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -36,6 +37,7 @@ const Game: React.FC = () => {
   const activeKeys = useRef<{ [key: string]: boolean }>({});
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
+  const searchParams = useSearchParams();
 
   // redux state selectors
   const currentGun = useAppSelector((state) => state.game.currentGun);
@@ -439,8 +441,35 @@ const Game: React.FC = () => {
       </Header>
       <div className="content-container"></div>
       <div className="game-container">
+        {/* Level transition overlay */}
+        {gameStatus === 'playing' && isLevelTransitioning && (
+          <div className="level-transition">
+            <h2>Level {currentLevel} Complete!</h2>
+            <p>Reward: {currentLevelConfig.mathbucksReward} Mathbucks</p>
+            {currentLevel < 7 && <p>Preparing Level {currentLevel + 1}...</p>}
+          </div>
+        )}
+
+        {/* Victory state */}
+        {gameStatus === 'victory' && (
+          <div className="menu-container">
+            <h2>Congratulations!</h2>
+            <p>You've completed all levels!</p>
+            <button onClick={handleCompleteReset}>Play Again</button>
+          </div>
+        )}
+
+        {/* Game over state */}
+        {gameStatus === 'gameOver' && (
+          <div className="menu-container">
+            <button onClick={handleCompleteReset}>Try Again</button>
+          </div>
+        )}
+
         <div className="game-board">
-          <div className="line-numbers">
+          <div
+            className="line-numbers"
+            style={{ transform: `translateY(${cameraTransform.y}px)` }}>
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
           <div
@@ -452,22 +481,6 @@ const Game: React.FC = () => {
             {gameStatus === 'menu' && (
               <div className="menu-container">
                 <button onClick={handleGameStart}>Start Game</button>
-              </div>
-            )}
-
-            {/* Game over state */}
-            {gameStatus === 'gameOver' && (
-              <div className="menu-container">
-                <button onClick={handleCompleteReset}>Try Again</button>
-              </div>
-            )}
-
-            {/* Victory state */}
-            {gameStatus === 'victory' && (
-              <div className="menu-container">
-                <h2>Congratulations!</h2>
-                <p>You've completed all levels!</p>
-                <button onClick={handleCompleteReset}>Play Again</button>
               </div>
             )}
 

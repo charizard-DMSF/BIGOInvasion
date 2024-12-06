@@ -46,7 +46,7 @@ export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
         enemyTypes: {
             basic: 1,           // level 1: only basic enemies
             fast: 0,
-            tank: 0
+            tank: 0,
         },
         mathbucksReward: 500
     },
@@ -125,6 +125,8 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
     const killCount = useAppSelector(state => state.game.levelKillCount);
     const gameStatus = useAppSelector(state => state.game.gameStatus);
     const mathbucks = useAppSelector(state => state.game.mathbucks);
+    const isPaused = useAppSelector(state => state.game.isPaused);
+    const inStore = useAppSelector(state => state.game.inStore);
 
     // local state for level transition management
     const [isLevelTransitioning, setIsLevelTransitioning] = useState(false);
@@ -192,7 +194,14 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
         const config = getCurrentLevelConfig();
         dispatch(updateMathbucks(mathbucks + config.mathbucksReward));
 
-        // transition after delay
+        // transition with a shorter delay and gradual fade
+        const transitionDuration = 1000; // 1 second
+        const transitionDelay = 500; // 0.5 second delay
+
+        setTimeout(() => {
+            setIsLevelTransitioning(false);
+        }, transitionDelay + transitionDuration);
+
         setTimeout(() => {
             if (currentLevel < 7) {
                 dispatch(advanceLevel());
@@ -200,10 +209,8 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
             } else {
                 dispatch(setGameStatus('victory'));
             }
-            setIsLevelTransitioning(false);
-        }, 3000); // 3 second transition delay
+        }, transitionDelay + transitionDuration);
     }, [currentLevel, dispatch, mathbucks, getCurrentLevelConfig]);
-
     /*
       manages enemy spawning based on level configuration
      */
@@ -212,17 +219,16 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
     useEffect(() => {
         let spawnInterval: NodeJS.Timeout;
 
-        if (gameStatus === 'playing' && !isLevelTransitioning) {
+        // clear enemies ONLY when starting level 1
+        if (gameStatus === 'playing' && currentLevel === 1 && !isLevelTransitioning) {
+            dispatch(updateEnemies([]));
+        }
+
+        // spawn enemies only when game is active and not paused/in store
+        if (gameStatus === 'playing' && !isLevelTransitioning && !isPaused && !inStore) {
             const config = getCurrentLevelConfig();
 
-            // clear any existing enemies when starting
-            if (currentLevel === 1) {
-                dispatch(updateEnemies([]));
-            }
-
-            // single spawn interval, no initial spawn
             spawnInterval = setInterval(() => {
-                // only spawn if we haven't met the level requirements
                 if (killCount < config.requiredKills) {
                     const enemyType = getEnemyTypeForSpawn();
                     const enemyConfig = ENEMY_TYPES[enemyType].config;
@@ -246,13 +252,12 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
             }, config.spawnInterval);
         }
 
-        // cleanup interval on unmount or state change
         return () => {
             if (spawnInterval) {
                 clearInterval(spawnInterval);
             }
         };
-    }, [gameStatus, isLevelTransitioning, currentLevel]); // Reduced dependency array
+    }, [gameStatus, isLevelTransitioning, currentLevel, isPaused, inStore]);
 
     // return level management interface
     return {

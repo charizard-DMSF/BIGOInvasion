@@ -14,14 +14,27 @@ const dbController = {
 getTopScores: async (req, res, next) => {
     const { data, error } = await supabase
         .from('HighScores')
-        .select('*')
+        .select(`score, User (username), achived_at`)
         .order('score', { ascending: false })
-        .limit(3);
+        .limit(10);
         console.log('data', data);
         res.locals = data;
 
     next();
 },
+
+// Get username based on the user id
+getUserName: async (req, res, next) => {
+    console.log('userName func hit db Controler')
+    const { data, error } = await supabase
+    .from('User')
+    .select('username')
+    .eq('user_id', req.body.userId);
+    console.log('data', data);
+    res.locals = data;
+
+  next();
+}
 
 }
 

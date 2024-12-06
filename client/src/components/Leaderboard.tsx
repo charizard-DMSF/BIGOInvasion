@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface LeaderboardEntry {
   rank: number;
@@ -8,44 +8,78 @@ interface LeaderboardEntry {
   date: string;
 }
 
-// mock data
-const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, username: "Stephanie", score: 150000, level: 42, date: "2024-11-30" },
-  { rank: 2, username: "DanDanDan", score: 145000, level: 38, date: "2024-11-29" },
-  { rank: 3, username: "syntax_error", score: 142000, level: 35, date: "2024-11-30" },
-  { rank: 4, username: "recursive_pro", score: 138000, level: 33, date: "2024-11-28" },
-  { rank: 5, username: "array_index", score: 135000, level: 31, date: "2024-11-30" },
-  { rank: 6, username: "binary_search", score: 132000, level: 30, date: "2024-11-29" },
-  { rank: 7, username: "stack_overflow", score: 128000, level: 28, date: "2024-11-28" },
-  { rank: 8, username: "merge_sort", score: 125000, level: 27, date: "2024-11-27" },
-  { rank: 9, username: "Felipe", score: 120000, level: 25, date: "2024-11-26" },
-  { rank: 10, username: "Matthews", score: 118000, level: 24, date: "2024-11-25" },
-];
-
 interface LeaderboardProps {
   onStatsClick?: () => void;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ onStatsClick }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ }) => {
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [stats, setStats] = useState({
+    players: 0,
+    gamesPlayed: 0,
+    topScore: 0
+  });
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch {
+      return 'Invalid Date';
+    }
+  };
+
+  const fetchLeaderboardData = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/leaders');
+      const result = await response.json();
+
+      if (result.data) {
+        const transformedData = result.data.map((entry: any, index: number) => ({
+          rank: index + 1,
+          username: entry.User.username,
+          score: entry.score,
+          level: Math.floor(entry.score / 3500),
+          date: formatDate(entry.achived_at)
+        }));
+
+        setLeaderboardData(transformedData);
+
+        // update stats
+        if (transformedData.length > 0) {
+          setStats({
+            players: transformedData.length,
+            gamesPlayed: transformedData.length * 5,
+            topScore: Math.max(...transformedData.map((entry: LeaderboardEntry) => entry.score))
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaderboardData();
+  }, []);
+
   return (
     <div className="leaderboard-container">
       <h2 className="leaderboard-title">Global Rankings</h2>
-
       <div className="leaderboard-stats">
         <div className="stat-box">
           <span className="stat-label">Players</span>
-          <span className="stat-value">10,427</span>
+          <span className="stat-value">{stats.players.toLocaleString()}</span>
         </div>
         <div className="stat-box">
           <span className="stat-label">Games Played</span>
-          <span className="stat-value">52,834</span>
+          <span className="stat-value">{stats.gamesPlayed.toLocaleString()}</span>
         </div>
         <div className="stat-box">
           <span className="stat-label">Top Score</span>
-          <span className="stat-value">150,000</span>
+          <span className="stat-value">{stats.topScore.toLocaleString()}</span>
         </div>
       </div>
-
       <div className="leaderboard-table-container">
         <table className="leaderboard-table">
           <thead>
@@ -58,7 +92,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onStatsClick }) => {
             </tr>
           </thead>
           <tbody>
-            {MOCK_LEADERBOARD.map((entry) => (
+            {leaderboardData.map((entry) => (
               <tr key={entry.rank}>
                 <td>
                   <span className={`rank rank-${entry.rank <= 3 ? entry.rank : 'other'}`}>
@@ -74,7 +108,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onStatsClick }) => {
           </tbody>
         </table>
       </div>
-
       <div className="leaderboard-footer">
       </div>
     </div>

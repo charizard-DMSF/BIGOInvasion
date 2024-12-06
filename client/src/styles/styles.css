@@ -1115,3 +1115,50 @@ body {
 
 
 /* levels */
+
+.level-transition {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 2rem;
+  border-radius: 0.5rem;
+  border: 2px solid #4CAF50;
+  color: white;
+  text-align: center;
+  pointer-events: none;
+}
+
+.level-transition h2 {
+  color: #4caf50;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.level-transition p {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+  }
+
+  20%,
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.level-transition {
+  /* Existing styles */
+  animation: fadeInOut 3s ease-in-out;
+}
