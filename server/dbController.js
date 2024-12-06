@@ -14,7 +14,7 @@ const dbController = {
 getTopScores: async (req, res, next) => {
     const { data, error } = await supabase
         .from('HighScores')
-        .select('*')
+        .select(`score, User (username), achived_at`)
         .order('score', { ascending: false })
         .limit(10);
         console.log('data', data);
