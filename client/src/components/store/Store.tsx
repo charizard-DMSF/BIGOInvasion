@@ -11,14 +11,15 @@ import { GUNS } from '../game/Guns';
 
 const Store: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { mathbucks, stats, unlockedGuns } = useAppSelector(
+  const { playerHealth, mathbucks, stats, unlockedGuns } = useAppSelector(
     (state) => state.game
   );
 
-  const handleUpgrade = (stat: string, currentLevel: number) => {
+  const handleUpgrade = (statKey: string, statValue: number) => {
+    if (statValue === stats[statKey].max) return;
     if (mathbucks >= 100) {
       dispatch(updateMathbucks(mathbucks - 100));
-      dispatch(upgradeStat({ stat, level: currentLevel + 1 }));
+      dispatch(upgradeStat({ stat: statKey, level: statValue + 1 }));
     }
   };
 
@@ -34,6 +35,7 @@ const Store: React.FC = () => {
   };
 
   const handleHealthRefill = () => {
+    if (playerHealth >= 100) return;
     if (mathbucks >= 100) {
       dispatch(updateHealth(50));
       dispatch(updateMathbucks(mathbucks - 100));
