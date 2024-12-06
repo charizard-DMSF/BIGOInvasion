@@ -45,13 +45,13 @@ const userController = {
 
 
             res.status(201).json({
-                message: "User successfully created!",
-                token,
-                user: {
-                    id: newUser.id,
-                    username: newUser.username,
-                }
-            })
+                    message: "User successfully created!",
+                    token,
+                    user: {
+                        user_id: newUser.user_id,  // Use user_id consistently
+                        username: newUser.username
+                    }
+                })
         } catch (error) {
             res.status(500).json({ error: error.message })
        }
@@ -60,47 +60,45 @@ const userController = {
      },
 
 
-    login: async (req, res, next) => {
-        try {
-            const { username, password } = req.body;
+login: async (req, res, next) => {
+    try {
+        const { username, password } = req.body;
+        // find user
+        const { data: user, error } = await supabase
+            .from('User')
+            .select('*')
+            .eq('username', username)
+            .single();
 
-            // find user
-            const { data: user, error } = await supabase
-                .from('User')
-                .select('*')
-                .eq('username', username)
-                .single();
-                 
-            if (error || !user) {
-                return res.status(500).json({error: 'username does not exist'})
-            }
-
-            // check password => this'll be a boolean 
-            
-            const validPassword = await bcrypt.compare(password, user.hashedPassword);
-            if (!validPassword) {
-                return res.status(500).json({error: 'password incorrect'})
-            }
-            
-
-            // Create JWT token
-            const token = jwt.sign(
-                { userId: user.id, username: user.username },
-                process.env.JWT_SECRET,
-                { expiresIn: '24h' }
-            );
-
-            res.json({
-                token,
-                user: {
-                id: user.id,
-                username: user.username,
-                }
-            });        
-        } catch (error) {
-            res.status(500).json({error: error.message})
+        if (error || !user) {
+            return res.status(500).json({error: 'username does not exist'})
         }
-    },
+        
+        // check password
+        const validPassword = await bcrypt.compare(password, user.hashedPassword);
+        if (!validPassword) {
+            return res.status(500).json({error: 'password incorrect'})
+        }
+
+        // Create JWT token
+        const token = jwt.sign(
+            { userId: user.user_id, username: user.username },  // Make sure to use user_id here
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Send consistent user data structure
+        res.json({
+            token,
+            user: {
+                user_id: user.user_id,  // Use user_id consistently
+                username: user.username
+            }
+        });
+    } catch (error) {
+        res.status(500).json({error: error.message})
+    }
+},
 
     authenticateToken: async (req, res, next) => {
         const authHeader = req.headers['authorization'];

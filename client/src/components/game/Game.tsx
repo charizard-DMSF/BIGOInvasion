@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-
+import { useSearchParams } from 'react-router-dom';
+import { Layout } from 'antd';
 import Hud from '../hud/Stats';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
 import {
@@ -13,10 +14,12 @@ import {
   defeatEnemy,
   updateProjectiles,
   damagePlayer,
+  setGameStatus,
+
+  loadSavedGameState
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
-import { Layout } from 'antd';
 import {
   useCamera,
   usePlayerMovement,
@@ -28,36 +31,29 @@ import {
 } from './gameUtils';
 import { GUNS } from './Guns';
 import { useLevelManager } from './LevelManager';
-import { useSearchParams } from 'react-router-dom';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
   const worldRef = useRef<HTMLDivElement>(null);
   const activeKeys = useRef<{ [key: string]: boolean }>({});
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
-  const searchParams = useSearchParams()
 
-
-
-  // redux state selectors
+  // Redux state selectors
   const currentGun = useAppSelector((state) => state.game.currentGun);
   const isPaused = useAppSelector((state) => state.game.isPaused);
-  const isLeaderboardOpen = useAppSelector(
-    (state) => state.game.isLeaderboardOpen
-  );
+  const isLeaderboardOpen = useAppSelector((state) => state.game.isLeaderboardOpen);
   const isStatsOpen = useAppSelector((state) => state.game.isStatsOpen);
   const enemies = useAppSelector((state) => state.game.enemies);
   const currentLevel = useAppSelector((state) => state.game.currentLevel);
+  const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } = useAppSelector((state) => state.game);
 
-  const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } =
-    useAppSelector((state) => state.game);
-
-  // custom hooks
+  // Custom hooks
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
-  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat, killCount } = useLevelManager(cameraTransform);
+  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat, initializeLevel } = useLevelManager(cameraTransform);
 
   const {
     isDashing,
@@ -78,18 +74,64 @@ const Game: React.FC = () => {
     inStore
   );
 
-
-  // add a cooldown stage for player damage
+  // Player damage cooldown state
   const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
   const isInvulnerableRef = useRef(false);
   const damageCooldown = 1000;
 
+  // Load saved game
+  useEffect(() => {
+    const loadSave = searchParams.get('loadSave');
+    const user = localStorage.getItem('user');
+
+    if (loadSave === 'true' && user) {
+      const userData = JSON.parse(user);
+
+      const loadSavedGame = async () => {
+        try {
+          const response = await fetch(`http://localhost:8080/loadGame/${userData.id}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+
+          if (!response.ok) throw new Error('Failed to load game');
+
+          const { gameState } = await response.json();
+
+          if (gameState) {
+            dispatch(loadSavedGameState({
+              currentLevel: gameState.currentLevel,
+              levelKillCount: gameState.levelKillCount,
+              score: gameState.score,
+              playerHealth: gameState.playerHealth,
+              mathbucks: gameState.mathbucks,
+              unlockedGuns: gameState.unlockedGuns,
+              stats: gameState.stats,
+              powerUps: gameState.powerUps,
+              playerPosition: gameState.playerPosition
+            }));
+
+            // Initialize the level with proper enemies
+            initializeLevel(gameState.currentLevel);
+          }
+        } catch (error) {
+          console.error('Failed to load saved game:', error);
+          dispatch(setGameStatus('playing'));
+        }
+      };
+
+      loadSavedGame();
+    }
+  }, [dispatch, searchParams, initializeLevel]);
+
+  // Update invulnerability ref
   useEffect(() => {
     isInvulnerableRef.current = isPlayerInvulnerable;
   }, [isPlayerInvulnerable]);
 
-  // check collisions for projectile hits enemy and enemy hits player
-  const checkCollisions = React.useCallback(() => {
+  // Collision detection
+  const checkCollisions = useCallback(() => {
     const updatedProjectiles = [...projectiles];
     const updatedEnemies = [...enemies];
     let projectilesToRemove = new Set();
@@ -101,7 +143,7 @@ const Game: React.FC = () => {
       bottom: playerPosition.y + 8,
     };
 
-    // check each projectile against each enemy
+    // Check projectile-enemy collisions
     updatedProjectiles.forEach((projectile) => {
       const projectileBox = {
         left: projectile.position.x,
@@ -118,31 +160,25 @@ const Game: React.FC = () => {
           bottom: enemy.position.y + 30,
         };
 
-        // check if projectile hits enemy
         if (
           projectileBox.left < enemyBox.right &&
           projectileBox.right > enemyBox.left &&
           projectileBox.top < enemyBox.bottom &&
           projectileBox.bottom > enemyBox.top
         ) {
-          // Get damage from current gun configuration
           const gunConfig = GUNS[currentGun];
-          const damage =
-            projectile.isCharged && gunConfig.charged
-              ? gunConfig.charged.damage
-              : gunConfig.normal.damage;
+          const damage = projectile.isCharged && gunConfig.charged
+            ? gunConfig.charged.damage
+            : gunConfig.normal.damage;
 
-          // apply damage to enemy
           dispatch(damageEnemy({ id: enemy.id, damage }));
 
-          // check if enemy is defeated
           const updatedEnemy = enemies.find((e) => e.id === enemy.id);
           if (updatedEnemy && updatedEnemy.health <= 0) {
             dispatch(defeatEnemy(enemy.id));
             handleEnemyDefeat();
           }
 
-          // mark projectile for removal if it's not piercing
           if (!projectile.piercing) {
             projectilesToRemove.add(projectile.id);
           }
@@ -150,8 +186,7 @@ const Game: React.FC = () => {
       });
     });
 
-    // check if enemy hits player
-    // check if player is not invulnerable, use ref instead of state
+    // Check enemy-player collisions
     if (!isInvulnerableRef.current) {
       for (const enemy of updatedEnemies) {
         const enemyBox = {
@@ -178,7 +213,6 @@ const Game: React.FC = () => {
           }
 
           setTimeout(() => {
-            // reset both ref and state
             isInvulnerableRef.current = false;
             setIsPlayerInvulnerable(false);
             const playerElement = document.querySelector('.player');
@@ -192,7 +226,7 @@ const Game: React.FC = () => {
       }
     }
 
-    // remove used projectiles
+    // Remove used projectiles
     if (projectilesToRemove.size > 0) {
       const remainingProjectiles = updatedProjectiles.filter(
         (p) => !projectilesToRemove.has(p.id)
@@ -201,14 +235,13 @@ const Game: React.FC = () => {
     }
   }, [projectiles, enemies, currentGun, playerPosition, dispatch, handleEnemyDefeat]);
 
-  const updateEnemyPositions = React.useCallback(
+  // Update enemy positions
+  const updateEnemyPositions = useCallback(
     (deltaTime: number) => {
       const updatedEnemies = enemies.map((enemy) => {
-        // calculate direction vector towards the player
         const directionX = playerPosition.x - enemy.position.x;
         const directionY = playerPosition.y - enemy.position.y;
 
-        // calculate distance to normalize movement
         const distance = Math.sqrt(
           directionX * directionX + directionY * directionY
         );
@@ -218,12 +251,8 @@ const Game: React.FC = () => {
         return {
           ...enemy,
           position: {
-            x:
-              enemy.position.x +
-              normalizedDirectionX * enemy.speed * (deltaTime / 16.667),
-            y:
-              enemy.position.y +
-              normalizedDirectionY * enemy.speed * (deltaTime / 16.667),
+            x: enemy.position.x + normalizedDirectionX * enemy.speed * (deltaTime / 16.667),
+            y: enemy.position.y + normalizedDirectionY * enemy.speed * (deltaTime / 16.667),
           },
         };
       });
@@ -233,8 +262,8 @@ const Game: React.FC = () => {
     [enemies, dispatch, playerPosition]
   );
 
-  // game loop
-  const gameLoop = React.useCallback(
+  // Game loop
+  const gameLoop = useCallback(
     (timestamp: number) => {
       if (gameStatus !== 'playing' || inStore || isPaused || isLevelTransitioning) return;
 
@@ -264,8 +293,8 @@ const Game: React.FC = () => {
     ]
   );
 
-  // event handlers
-  const handleStoreToggle = React.useCallback(
+  // Event handlers
+  const handleStoreToggle = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'p' || e.key === 'P') {
         e.preventDefault();
@@ -275,7 +304,7 @@ const Game: React.FC = () => {
     [dispatch]
   );
 
-  const handleEscape = React.useCallback(
+  const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -300,30 +329,17 @@ const Game: React.FC = () => {
     lastFrameTimestamp.current = 0;
   }, [handleGameReset, setIsMoving]);
 
-  // effect for event listeners and game loop
+  // Event listeners and game loop setup
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
-        [
-          'w',
-          'a',
-          's',
-          'd',
-          'W',
-          'A',
-          'S',
-          'D',
-          'ArrowUp',
-          'ArrowDown',
-          'ArrowLeft',
-          'ArrowRight',
-        ].includes(e.key)
+        ['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
       ) {
         e.preventDefault();
       }
       activeKeys.current[e.key] = true;
 
-      // gun switching logic
+      // Gun switching logic
       if (gameStatus === 'playing' && !inStore && !isPaused) {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
@@ -359,7 +375,7 @@ const Game: React.FC = () => {
       }
     };
 
-    // add event listeners
+    // Add event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
@@ -369,12 +385,12 @@ const Game: React.FC = () => {
     window.addEventListener('keydown', handleEscape);
     window.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    // start game loop
+    // Start game loop
     if (gameStatus === 'playing' && !inStore && !isPaused) {
       frameRequestId.current = requestAnimationFrame(gameLoop);
     }
 
-    // cleanup
+    // Cleanup
     return () => {
       if (frameRequestId.current) {
         cancelAnimationFrame(frameRequestId.current);
@@ -403,12 +419,12 @@ const Game: React.FC = () => {
     unlockedGuns,
   ]);
 
-  // render store if in store mode
+  // Render store if in store mode
   if (inStore) {
     return <Store />;
   }
 
-  const { Header, Footer, Content } = Layout;
+  const { Header } = Layout;
 
   const layoutStyle = {
     borderRadius: 8,
@@ -417,10 +433,8 @@ const Game: React.FC = () => {
     maxWidth: 'calc(100% - 8px)',
   };
 
-  const boundaryPadding = 20;
-
   return (
-      <Layout style={layoutStyle}>
+    <Layout style={layoutStyle}>
       <Header className='headerStyle'>
         <Hud />
       </Header>
@@ -461,7 +475,7 @@ const Game: React.FC = () => {
             style={{
               transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
             }}
-            >
+          >
             {gameStatus === 'menu' && (
               <div className="menu-container">
                 <button onClick={handleGameStart}>Start Game</button>
@@ -474,7 +488,8 @@ const Game: React.FC = () => {
                 {renderEnemies(enemies)}
                 {/* Player */}
                 <div
-                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
+                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''
+                    }`}
                   style={{
                     left: `${playerPosition.x}px`,
                     top: `${playerPosition.y}px`,

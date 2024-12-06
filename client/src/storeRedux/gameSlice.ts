@@ -204,6 +204,29 @@ const gameSlice = createSlice({
         state.gameStatus = 'victory';
       }
     },
+    loadSavedGameState: (state, action: PayloadAction<{
+      currentLevel: number;
+      levelKillCount: number;
+      score: number;
+      playerHealth: number;
+      mathbucks: number;
+      unlockedGuns: string[];
+      stats: { [key: string]: number };
+      powerUps: { [key: string]: number };
+      playerPosition: Position;
+    }>) => {
+      const savedState = action.payload;
+      state.currentLevel = savedState.currentLevel;
+      state.levelKillCount = savedState.levelKillCount;
+      state.score = savedState.score;
+      state.playerHealth = savedState.playerHealth;
+      state.mathbucks = savedState.mathbucks;
+      state.unlockedGuns = savedState.unlockedGuns;
+      state.stats = savedState.stats;
+      state.powerUps = savedState.powerUps;
+      state.playerPosition = savedState.playerPosition;
+      state.gameStatus = 'playing';
+    },
   },
 });
 
@@ -233,6 +256,7 @@ export const {
   incrementKillCount,
   resetKillCount,
   advanceLevel,
+  loadSavedGameState,
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

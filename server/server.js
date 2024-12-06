@@ -51,6 +51,16 @@ app.post('/createUser', userController.createUser, async (req, res) =>{
 });
 app.post('/login', userController.login);
 
+app.post('/saveGame', dbController.saveGameState, (req, res) => {
+    if (res.locals.savedGame) {
+        res.status(200).json({ message: 'Game saved successfully', data: res.locals.savedGame });
+    }
+});
+
+app.get('/loadGame/:userId', dbController.loadGameState, async (req, res) => {
+  res.status(200).json({ gameState: res.locals.gameState });
+});
+
 
 app.get('*', (req, res) => res.sendStatus(404)) //is that how 404's are done?
 
