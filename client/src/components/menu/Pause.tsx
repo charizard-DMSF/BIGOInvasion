@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../../storeRedux/store';
+import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
 import { setGameStatus, toggleLeaderboard, toggleStats } from '../../storeRedux/gameSlice';
 import Leaderboard from '../Leaderboard';
 import PlayerStats from '../YourStats';
@@ -14,11 +14,45 @@ interface PauseMenuProps {
 const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isStatsOpen }) => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
+    const gameState = useAppSelector(state => state.game);
+    const user = localStorage.getItem('user');
 
-    const handleSaveAndQuit = () => {
-        // here we would implement save logic 
-        dispatch(setGameStatus('menu'));
-        navigate('/');
+    const handleSaveAndQuit = async () => {
+        if (!user) return;
+
+        const userData = JSON.parse(user);
+
+        try {
+            const response = await fetch('http://localhost:8080/saveGame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    userId: userData.id,
+                    gameState: {
+                        currentLevel: gameState.currentLevel,
+                        levelKillCount: gameState.levelKillCount,
+                        score: gameState.score,
+                        playerHealth: gameState.playerHealth,
+                        mathbucks: gameState.mathbucks,
+                        unlockedGuns: gameState.unlockedGuns,
+                        stats: gameState.stats,
+                        powerUps: gameState.powerUps,
+                        playerPosition: gameState.playerPosition,
+                        lastSaved: new Date().toISOString()
+                    }
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to save game');
+
+            dispatch(setGameStatus('menu'));
+            navigate('/');
+        } catch (error) {
+            console.error('Failed to save game:', error);
+        }
     };
 
     const handleStats = () => {
@@ -30,8 +64,10 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
     };
 
     const handleMainMenu = () => {
-        dispatch(setGameStatus('menu'));
-        navigate('/');
+        if (window.confirm('Are you sure? Any unsaved progress will be lost.')) {
+            dispatch(setGameStatus('menu'));
+            navigate('/');
+        }
     };
 
     return (
@@ -46,7 +82,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
                     <button onClick={handleLeaderboard}>
                         {isLeaderboardOpen ? 'Close Leaderboard' : 'Leaderboard'}
                     </button>
-                    <button onClick={handleSaveAndQuit}>Save and Quit</button>
+                    {user && <button onClick={handleSaveAndQuit}>Save and Quit</button>}
                     <button onClick={handleMainMenu}>Main Menu</button>
                 </div>
             </div>

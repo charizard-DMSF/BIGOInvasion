@@ -28,6 +28,7 @@ import {
 } from './gameUtils';
 import { GUNS } from './Guns';
 import { useLevelManager } from './LevelManager';
+import { useSearchParams } from 'react-router-dom';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -35,6 +36,9 @@ const Game: React.FC = () => {
   const activeKeys = useRef<{ [key: string]: boolean }>({});
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
+  const searchParams = useSearchParams()
+
+
 
   // redux state selectors
   const currentGun = useAppSelector((state) => state.game.currentGun);

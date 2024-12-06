@@ -1,4 +1,3 @@
-// Login.tsx
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input, Button, message } from 'antd';
@@ -27,27 +26,22 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const response = await fetch('/login', {
+      const response = await fetch('http://localhost:8080/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
       }
-
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
       message.success('Login successful!');
-      navigate('/game');
+      navigate('/');
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {
@@ -56,16 +50,12 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md space-y-6 rounded-lg bg-white p-8 shadow-md">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back!</h1>
-          <p className="mt-2 text-gray-600">Please enter your details</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="login-username" className="block text-sm font-medium text-gray-700">
+    <div className="menu-container">
+      <div className="menu-title">Welcome Back</div>
+      <div className="menu-options">
+        <form onSubmit={handleLogin} style={{ width: '300px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <label htmlFor="login-username" style={{ display: 'block', marginBottom: '8px' }}>
               Username:
             </label>
             <Input
@@ -74,53 +64,37 @@ const Login = () => {
               value={formData.username}
               onChange={handleChange}
               required
-              className="w-full"
+              style={{ width: '100%' }}
             />
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700">
+          <div style={{ marginBottom: '20px' }}>
+            <label htmlFor="login-password" style={{ display: 'block', marginBottom: '8px' }}>
               Password:
             </label>
-            <Input
-              type="password"
+            <Input.Password
               id="login-password"
               value={formData.password}
               onChange={handleChange}
               required
-              className="w-full"
+              style={{ width: '100%' }}
             />
           </div>
-
-          <div className="space-y-4">
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              className="w-full"
-            >
-              LOG IN
-            </Button>
-
-            <Button className="w-full">
-              Log in with GitHub
-            </Button>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            className="menu-option"
+            style={{ width: '100%', marginBottom: '10px' }}
+          >
+            Log In
+          </Button>
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            Need an account?{' '}
+            <Link to="/signup" style={{ color: '#4caf50' }}>
+              Sign Up
+            </Link>
           </div>
         </form>
-
-        <div className="text-center text-sm">
-          <p className="text-gray-600">
-            <Link to="/forgot-password" className="text-blue-600 hover:text-blue-800">
-              Forgot password?
-            </Link>
-          </p>
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-600 hover:text-blue-800">
-              Sign up
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );
