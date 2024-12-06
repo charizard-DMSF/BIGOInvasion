@@ -16,7 +16,7 @@ getTopScores: async (req, res, next) => {
         .from('HighScores')
         .select('*')
         .order('score', { ascending: false })
-        .limit(3);
+        .limit(10);
         console.log('data', data);
         res.locals = data;
 
