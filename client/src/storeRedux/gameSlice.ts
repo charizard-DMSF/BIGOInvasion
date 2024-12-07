@@ -67,7 +67,7 @@ const initialState: GameState = {
   shields: 5,
   nukes: 10,
   inStore: false,
-  mathbucks: 5000,
+  mathbucks: 0,
   enemies: [],
   SIZE: 32,
   projectiles: [],

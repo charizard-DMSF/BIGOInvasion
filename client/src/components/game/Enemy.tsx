@@ -1,5 +1,8 @@
 import React from 'react';
 import { Enemy } from '../../storeRedux/gameSlice';
+import enemy1 from '../../../public/assets/enemy1.png';
+import enemy2 from '../../../public/assets/enemy2.png';
+import enemy3 from '../../../public/assets/enemy3.png';
 
 export interface EnemyConfig {
   baseHealth: number;
@@ -7,6 +10,7 @@ export interface EnemyConfig {
   damage: number;
   size: number;
   color: string;
+  image: string;
 }
 
 export interface EnemyType {
@@ -29,6 +33,7 @@ export const ENEMY_TYPES: { [key: string]: EnemyType } = {
       damage: 5,
       size: 32,
       color: 'red',
+      image: enemy1,
     },
   },
   fast: {
@@ -41,6 +46,7 @@ export const ENEMY_TYPES: { [key: string]: EnemyType } = {
       damage: 2,
       size: 24,
       color: 'yellow',
+      image: enemy2,
     },
   },
   tank: {
@@ -53,6 +59,7 @@ export const ENEMY_TYPES: { [key: string]: EnemyType } = {
       damage: 10,
       size: 40,
       color: 'blue',
+      image: enemy3,
     },
   },
 };
@@ -74,6 +81,9 @@ const EnemyComponent: React.FC<Enemy> = ({
         width: `${enemyConfig.size}px`,
         height: `${enemyConfig.size}px`,
         backgroundColor: enemyConfig.color,
+        backgroundImage: `url(${enemyConfig.image})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
       }}>
       {health}
     </div>
