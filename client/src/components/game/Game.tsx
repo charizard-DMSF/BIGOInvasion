@@ -17,7 +17,8 @@ import {
   setGameStatus,
   movePlayer,
   loadSavedGameState,
-  finishLoading
+  finishLoading,
+  removeEnemy
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -207,6 +208,7 @@ const Game: React.FC = () => {
           const updatedEnemy = enemies.find((e) => e.id === enemy.id);
           if (updatedEnemy && updatedEnemy.health <= 0) {
             dispatch(defeatEnemy(enemy.id));
+            dispatch(removeEnemy(enemy.id));
             handleEnemyDefeat();
           }
 
