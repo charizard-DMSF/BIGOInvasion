@@ -21,22 +21,22 @@ const VIEWPORT = {
 };
 
 interface LevelConfig {
-    requiredKills: number;      // enemies needed to complete level
-    spawnInterval: number;      // milliseconds between enemy spawns
+    requiredKills: number;
+    spawnInterval: number;
     enemyTypes: {
-        basic: number;          // spawn weights for each enemy type
+        basic: number;
         fast: number;
         tank: number;
     };
-    mathbucksReward: number;    // money awarded upon level completion
+    mathbucksReward: number;
 }
 
 export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
     1: {
         requiredKills: 15,
-        spawnInterval: 2000,    // starting with faster initial spawns
+        spawnInterval: 2000,
         enemyTypes: {
-            basic: 1,           // level 1: only basic enemies
+            basic: 1,
             fast: 0,
             tank: 0,
         },
@@ -46,7 +46,7 @@ export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
         requiredKills: 25,
         spawnInterval: 1500,
         enemyTypes: {
-            basic: 0.7,         // level 2: introduces fast enemies
+            basic: 0.7,
             fast: 0.3,
             tank: 0
         },
@@ -104,10 +104,25 @@ export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
     }
 };
 
+const generateEndlessLevelConfig = (level: number): LevelConfig => {
+    const baseLevel = 7;
+    const scalingFactor = (level - baseLevel) * 0.15; // 15% increase per level
+
+    return {
+        requiredKills: Math.floor(150 * (1 + scalingFactor)), // increase required kills
+        spawnInterval: Math.max(100, Math.floor(300 * (1 - scalingFactor * 0.5))), // decrease spawn interval but not below 100ms
+        enemyTypes: {
+            basic: Math.max(0.1, 0.2 - scalingFactor * 0.1),  // decrease basic enemies
+            fast: 0.5 + scalingFactor * 0.1,                  // increase fast enemies
+            tank: 0.3 + scalingFactor * 0.1,                  // increase tank enemies
+        },
+        mathbucksReward: Math.floor(4000 * (1 + scalingFactor)) // increase rewards
+    };
+};
+
 export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
     const dispatch = useAppDispatch();
 
-    // Redux state selectors
     const currentLevel = useAppSelector(state => state.game.currentLevel);
     const killCount = useAppSelector(state => state.game.levelKillCount);
     const gameStatus = useAppSelector(state => state.game.gameStatus);
@@ -115,11 +130,12 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
     const isPaused = useAppSelector(state => state.game.isPaused);
     const inStore = useAppSelector(state => state.game.inStore);
 
-    // Local state for level transition management
+    // local state for level transition management
     const [isLevelTransitioning, setIsLevelTransitioning] = useState(false);
 
     const getCurrentLevelConfig = useCallback(() => {
-        return LEVEL_CONFIGS[currentLevel];
+        //  predefined configs for levels 1-7, generate endless configs for higher levels
+        return currentLevel <= 7 ? LEVEL_CONFIGS[currentLevel] : generateEndlessLevelConfig(currentLevel);
     }, [currentLevel]);
 
     const getEnemyTypeForSpawn = useCallback((): EnemyTypeKey => {
@@ -165,33 +181,35 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
         }, transitionDelay + transitionDuration);
 
         setTimeout(() => {
-            if (currentLevel < 7) {
-                dispatch(advanceLevel());
-                dispatch(resetKillCount());
-            } else {
-                dispatch(setGameStatus('victory'));
-            }
+            // always advance to next level in endless mode
+            dispatch(advanceLevel());
+            dispatch(resetKillCount());
         }, transitionDelay + transitionDuration);
     }, [currentLevel, dispatch, mathbucks, getCurrentLevelConfig]);
 
     const initializeLevel = useCallback((level: number, savedPlayerPosition?: Position) => {
-        // Clear existing enemies
+        // clear existing enemies
         dispatch(updateEnemies([]));
 
-        // Reset kill count for the level
+        // reset kill count for the level
         dispatch(resetKillCount());
 
-        // Set player position if provided (for saved games)
+        // set player position if provided (for saved games)
         if (savedPlayerPosition) {
             dispatch(movePlayer(savedPlayerPosition));
         }
 
-        // Spawn initial wave of enemies for the level
-        const config = LEVEL_CONFIGS[level];
+        // get level config (either predefined or generated for endless mode)
+        const config = level <= 7 ? LEVEL_CONFIGS[level] : generateEndlessLevelConfig(level);
+
+        // initial spawn only happens once per game to populate uickly 
         if (config) {
-            for (let i = 0; i < Math.min(5, config.requiredKills); i++) {
+            for (let i = 0; i < 5; i++) {
                 const enemyType = getEnemyTypeForSpawn();
                 const enemyConfig = ENEMY_TYPES[enemyType].config;
+
+                // scale enemy stats for endless mode
+                const levelScaling = level > 7 ? 1 + ((level - 7) * 0.1) : 1; // 10% increase per level after 7
 
                 const newEnemy: Enemy = {
                     id: Math.random().toString(),
@@ -201,9 +219,9 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
                             -cameraTransform.y + Math.random() * VIEWPORT.HEIGHT
                         )),
                     },
-                    health: enemyConfig.baseHealth,
-                    speed: enemyConfig.baseSpeed,
-                    damage: enemyConfig.damage,
+                    health: Math.floor(enemyConfig.baseHealth * levelScaling),
+                    speed: enemyConfig.baseSpeed * Math.min(2, levelScaling), // cap speed scaling at 2x
+                    damage: Math.floor(enemyConfig.damage * levelScaling),
                     type: enemyType,
                 };
 
@@ -227,6 +245,9 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
                     const enemyType = getEnemyTypeForSpawn();
                     const enemyConfig = ENEMY_TYPES[enemyType].config;
 
+                    // scale enemy stats for endless mode
+                    const levelScaling = currentLevel > 7 ? 1 + ((currentLevel - 7) * 0.1) : 1;
+
                     const newEnemy: Enemy = {
                         id: Math.random().toString(),
                         position: {
@@ -235,9 +256,9 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
                                 -cameraTransform.y + Math.random() * VIEWPORT.HEIGHT
                             )),
                         },
-                        health: enemyConfig.baseHealth,
-                        speed: enemyConfig.baseSpeed,
-                        damage: enemyConfig.damage,
+                        health: Math.floor(enemyConfig.baseHealth * levelScaling),
+                        speed: enemyConfig.baseSpeed * Math.min(2, levelScaling),
+                        damage: Math.floor(enemyConfig.damage * levelScaling),
                         type: enemyType,
                     };
 

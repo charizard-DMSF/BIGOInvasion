@@ -297,8 +297,8 @@ export const renderLineNumbers = (
   cameraTransform: { x: number; y: number }
 ) => {
   const numbers = [];
-  // Calculate max lines based on the movement boundary (509 * 12) divided by line height
-  const maxLines = Math.floor((509 * 12) / (lineHeight * 2)); // Using lineHeight * 2 since we doubled spacing
+  // calculate max lines based on the movement boundary (509 * 12) divided by line height
+  const maxLines = Math.floor((509 * 12) / (lineHeight * 2)); // using lineHeight * 2 since we doubled spacing
 
   for (let i = 1; i <= maxLines; i++) {
     const linePosition = (i - 1) * lineHeight * 2;

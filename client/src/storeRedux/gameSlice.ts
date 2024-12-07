@@ -184,7 +184,6 @@ const gameSlice = createSlice({
       state.enemies = state.enemies.filter((e) => e.id !== action.payload);
       state.score += 10;
       state.mathbucks += 10;
-      // Kill count is now handled separately
     },
     removeEnemy: (state, action: PayloadAction<string>) => {
       state.enemies = state.enemies.filter(
@@ -210,10 +209,10 @@ const gameSlice = createSlice({
       stats: { [key: string]: number };
       powerUps: { [key: string]: number };
       playerPosition: Position;
-      enemies: Enemy[];  // Add enemies to save state
+      enemies: Enemy[];  
     }>) => {
       const savedState = action.payload;
-      state.gameStatus = 'loading';  // Set to loading first
+      state.gameStatus = 'loading';  
       state.currentLevel = savedState.currentLevel;
       state.levelKillCount = savedState.levelKillCount;
       state.score = savedState.score;
@@ -223,8 +222,8 @@ const gameSlice = createSlice({
       state.stats = savedState.stats;
       state.powerUps = savedState.powerUps;
       state.playerPosition = savedState.playerPosition;
-      state.enemies = savedState.enemies || [];  // Restore enemies
-      state.projectiles = [];  // Clear any existing projectiles
+      state.enemies = savedState.enemies || []; 
+      state.projectiles = [];  
     },
 
     finishLoading: (state) => {

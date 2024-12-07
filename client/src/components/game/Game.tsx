@@ -54,8 +54,7 @@ const Game: React.FC = () => {
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
-  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat, initializeLevel } = useLevelManager(cameraTransform);
-
+  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat} = useLevelManager(cameraTransform);
   const {
     isDashing,
     isCharging,
@@ -443,7 +442,11 @@ const Game: React.FC = () => {
           <div className="level-transition">
             <h2>Level {currentLevel} Complete!</h2>
             <p>Reward: {currentLevelConfig.mathbucksReward} Mathbucks</p>
-            {currentLevel < 7 && <p>Preparing Level {currentLevel + 1}...</p>}
+            {currentLevel >= 7 ? (
+              <p>Entering Endless Mode - Level {currentLevel + 1}...</p>
+            ) : (
+              <p>Preparing Level {currentLevel + 1}...</p>
+            )}
           </div>
         )}
 
@@ -464,7 +467,7 @@ const Game: React.FC = () => {
         )}
 
         <div className="game-board">
-          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+          <div className="line-numbers">
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
           <div
