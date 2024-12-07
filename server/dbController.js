@@ -88,7 +88,6 @@ loadGameState: async (req, res, next) => {
             .from('Session')
             .select('*')
             .eq('user_id', userId)
-            .order('created_at', { ascending: false })
             .limit(1)
             .single();
 

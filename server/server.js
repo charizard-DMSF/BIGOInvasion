@@ -57,7 +57,7 @@ app.post('/saveGame', dbController.saveGameState, (req, res) => {
     }
 });
 
-app.get('/loadGame/:userId', dbController.loadGameState, async (req, res) => {
+app.get('/loadGame/:userId', userController.authenticateToken, dbController.loadGameState, async (req, res) => {
   res.status(200).json({ gameState: res.locals.gameState });
 });
 

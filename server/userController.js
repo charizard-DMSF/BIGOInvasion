@@ -13,7 +13,7 @@ const userController = {
                 .single();
 
             if (existingUser) {
-                return res.status(400).json({error: "Username already exists"})
+                return res.status(400).json({ error: "Username already exists" })
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -31,9 +31,9 @@ const userController = {
 
             // Use consistent user_id field
             const token = jwt.sign(
-                { 
+                {
                     user_id: newUser.user_id, // Changed from newUser.id
-                    username: newUser.username 
+                    username: newUser.username
                 },
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
@@ -52,57 +52,56 @@ const userController = {
         }
     },
 
-login: async (req, res, next) => {
-    try {
-        const { username, password } = req.body;
+    login: async (req, res, next) => {
+        try {
+            const { username, password } = req.body;
         
-        const { data: user, error } = await supabase
-            .from('User')
-            .select('*')
-            .eq('username', username)
-            .single();
+            const { data: user, error } = await supabase
+                .from('User')
+                .select('*')
+                .eq('username', username)
+                .single();
 
-        if (error || !user) {
-            return res.status(401).json({error: 'Invalid username or password'});
-        }
-
-        const validPassword = await bcrypt.compare(password, user.hashedPassword);
-        if (!validPassword) {
-            return res.status(401).json({error: 'Invalid username or password'});
-        }
-
-        const token = jwt.sign(
-            { 
-                user_id: user.user_id,  // Make sure this matches your database field
-                username: user.username 
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        // Log the user object before sending
-        console.log('User object:', user);
-        console.log('Response being sent:', {
-            token,
-            user: {
-                user_id: user.user_id,
-                username: user.username
+            if (error || !user) {
+                return res.status(401).json({ error: 'Invalid username or password' });
             }
-        });
 
-        res.json({
-            token,
-            user: {
-                user_id: user.user_id,
-                username: user.username
+            const validPassword = await bcrypt.compare(password, user.hashedPassword);
+            if (!validPassword) {
+                return res.status(401).json({ error: 'Invalid username or password' });
             }
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({error: error.message});
-    }
+
+            const token = jwt.sign(
+                {
+                    user_id: user.user_id,  // Make sure this matches your database field
+                    username: user.username
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            // Log the user object before sending
+            console.log('User object:', user);
+            console.log('Response being sent:', {
+                token,
+                user: {
+                    user_id: user.user_id,
+                    username: user.username
+                }
+            });
+
+            res.json({
+                token,
+                user: {
+                    user_id: user.user_id,
+                    username: user.username
+                }
+            });
+        } catch (error) {
+            console.error('Login error:', error);
+            res.status(500).json({ error: error.message });
+        }
     },
-};
 
     authenticateToken: async (req, res, next) => {
         const authHeader = req.headers['authorization'];
@@ -121,5 +120,6 @@ login: async (req, res, next) => {
         })
 
     }
+}
 
 export default userController;

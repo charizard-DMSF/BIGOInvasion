@@ -128,7 +128,7 @@ const gameSlice = createSlice({
     },
     setGameStatus: (
       state,
-      action: PayloadAction<'menu' | 'playing' | 'gameOver' | 'victory' | 'loading'>
+      action: PayloadAction<'menu' | 'playing' | 'gameOver' | 'victory' >
     ) => {
       state.gameStatus = action.payload;
     },
@@ -210,8 +210,10 @@ const gameSlice = createSlice({
       stats: { [key: string]: number };
       powerUps: { [key: string]: number };
       playerPosition: Position;
+      enemies: Enemy[];  // Add enemies to save state
     }>) => {
       const savedState = action.payload;
+      state.gameStatus = 'loading';  // Set to loading first
       state.currentLevel = savedState.currentLevel;
       state.levelKillCount = savedState.levelKillCount;
       state.score = savedState.score;
@@ -221,8 +223,13 @@ const gameSlice = createSlice({
       state.stats = savedState.stats;
       state.powerUps = savedState.powerUps;
       state.playerPosition = savedState.playerPosition;
-      state.gameStatus = 'playing';
+      state.enemies = savedState.enemies || [];  // Restore enemies
+      state.projectiles = [];  // Clear any existing projectiles
     },
+
+    finishLoading: (state) => {
+      state.gameStatus = 'playing';
+    }
   },
 });
 
@@ -253,6 +260,7 @@ export const {
   resetKillCount,
   advanceLevel,
   loadSavedGameState,
+  finishLoading
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

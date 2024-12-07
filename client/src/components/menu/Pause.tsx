@@ -38,7 +38,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
             }
 
             const payload = {
-                userId: userId,
+                userId: userData.user_id,
                 gameState: {
                     currentLevel: gameState.currentLevel,
                     levelKillCount: gameState.levelKillCount,
@@ -49,6 +49,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
                     stats: gameState.stats,
                     powerUps: gameState.powerUps,
                     playerPosition: gameState.playerPosition,
+                    enemies: gameState.enemies, // Save current enemies state
                     lastSaved: new Date().toISOString()
                 }
             };
@@ -68,7 +69,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
             }
 
             dispatch(setGameStatus('menu'));
-            navigate('/', { replace: true });
+            navigate('/');
         } catch (error) {
             console.error('Failed to save game:', error);
             setSaveError(error instanceof Error ? error.message : 'Failed to save game');

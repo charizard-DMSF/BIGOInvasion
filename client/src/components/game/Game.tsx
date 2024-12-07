@@ -16,7 +16,8 @@ import {
   damagePlayer,
   setGameStatus,
   movePlayer,
-  loadSavedGameState
+  loadSavedGameState,
+  finishLoading
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -100,30 +101,17 @@ const Game: React.FC = () => {
           const { gameState } = await response.json();
 
           if (gameState) {
-            // First set game status to a loading state to prevent game loop from running
-            dispatch(setGameStatus('loading'));
-
-            // Load the saved state
+            // Load the complete state including enemies
             dispatch(loadSavedGameState({
-              currentLevel: gameState.currentLevel,
-              levelKillCount: gameState.levelKillCount,
-              score: gameState.score,
-              playerHealth: gameState.playerHealth,
-              mathbucks: gameState.mathbucks,
-              unlockedGuns: gameState.unlockedGuns,
-              stats: gameState.stats,
-              powerUps: gameState.powerUps,
-              playerPosition: gameState.playerPosition
+              ...gameState,
+              enemies: gameState.enemies || [] // Include enemies in load
             }));
 
+            // Don't initialize level with new enemies
             dispatch(movePlayer(gameState.playerPosition));
 
-            await initializeLevel(gameState.currentLevel, gameState.playerPosition);
-
-// ...
-
-            // Only start the game once everything is ready
-            dispatch(setGameStatus('playing'));
+            // Finally set to playing
+            dispatch(finishLoading());
           }
         } catch (error) {
           console.error('Failed to load saved game:', error);
@@ -133,7 +121,7 @@ const Game: React.FC = () => {
 
       loadSavedGame();
     }
-  }, [dispatch, searchParams, initializeLevel]);
+  }, [dispatch, searchParams]);
 
   // Update invulnerability ref
   useEffect(() => {
