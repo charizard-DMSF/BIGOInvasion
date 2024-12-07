@@ -435,6 +435,34 @@ body {
   box-shadow: 0 0 20px #9c27b0;
 }
 
+
+/* Machine Gun Styles */
+.debug-shot.gun-machineGun.normal {
+  color: #f32121;
+  text-shadow: 0 0 8px #f32121;
+  background-color: #f32121;
+}
+
+.debug-shot.gun-machineGun.normal::before {
+  background: linear-gradient(90deg, #f32121, transparent);
+  box-shadow: 0 0 12px #f32121;
+  animation: sniperTrail 0.3s infinite;
+}
+
+.debug-shot.gun-machineGun.charged {
+  color: #ffffff;
+  text-shadow: 0 0 12px #ffffff;
+  background-color: #ffffff;
+  font-weight: bold;
+  animation: fatalError 1s infinite;
+}
+
+.debug-shot.gun-machineGun.charged::before {
+  background: linear-gradient(90deg, #ffffff, transparent);
+  height: 5px;
+  box-shadow: 0 0 20px #ffffff;
+}
+
 /* Animations */
 @keyframes errorPulse {
   0%,

@@ -51,7 +51,7 @@ const Game: React.FC = () => {
 
   // custom hooks
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
-  const { updateProjectilePositions } = useProjectiles(gameStatus);
+  const { updateProjectilePositions } = useProjectiles(gameStatus, playerPosition);
   const { handleGameStart, handleGameReset } = useGameState();
   const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat, killCount } = useLevelManager(cameraTransform);
 
@@ -325,6 +325,7 @@ const Game: React.FC = () => {
           '1': 'basic',
           '2': 'spread',
           '3': 'sniper',
+          '4': 'machineGun'
         };
 
         if (e.key in gunKeys && unlockedGuns.includes(gunKeys[e.key])) {
@@ -351,16 +352,43 @@ const Game: React.FC = () => {
         activateDash();
       } else if (e.button === 0) {
         e.preventDefault();
-        startProjectileCharge(e);
+        if(currentGun === "machineGun"){
+          setInterval(releaseProjectile, 100)
+        }
+        else
+          startProjectileCharge(e);
       }
     };
+
+    let intervalId: number | undefined;
+    const handleMachineGunDown = (e: MouseEvent) => {
+      if (isPaused || inStore) return;
+      if (e.button === 0) {
+        e.preventDefault();
+        releaseProjectile(e, true, playerPosition.x, playerPosition.y);
+        intervalId = window.setInterval(() => {
+          if(e){
+            releaseProjectile(e,true, playerPosition.x, playerPosition.y);
+            setIsCharging(false);
+          }
+        }, 100);
+        
+      }
+    }
 
     // add event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', releaseProjectile);
+    if(currentGun === "machineGun"){
+      window.addEventListener('mousedown', handleMachineGunDown);
+      window.addEventListener('mouseup', () => clearInterval(intervalId));
+    } 
+    else {
+      window.addEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousedown', handleMachineGunDown);
+      window.addEventListener('mouseup', releaseProjectile);
+    }
     window.addEventListener('keypress', handleStoreToggle);
     window.addEventListener('keydown', handleEscape);
     window.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -379,6 +407,7 @@ const Game: React.FC = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousedown', handleMachineGunDown);
       window.removeEventListener('mouseup', releaseProjectile);
       window.removeEventListener('keypress', handleStoreToggle);
       window.removeEventListener('keydown', handleEscape);

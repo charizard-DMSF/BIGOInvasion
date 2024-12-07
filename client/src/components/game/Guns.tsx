@@ -6,6 +6,7 @@ export interface ProjectileConfig {
     piercing: boolean;
     chargeTime?: number;
     color?: string;
+    special?: boolean;
     displayText: string;
 }
 
@@ -80,6 +81,27 @@ export const GUNS: { [key: string]: GunType } = {
             piercing: true,
             chargeTime: 1000,  // Longer charge time to balance high damage
             displayText: 'KBOOOOOOOOOM'  // Themed text
+        }
+    },
+    machineGun: {
+        id: 'machineGun',
+        name: 'Rapid Api Calls',
+        description: 'Low-damage, hold mouse to fire continuously',
+        cost: 3000,
+        normal: {
+            speed: 30,
+            damage: 10,
+            size: 5,
+            piercing: false,
+            displayText: 'KBOOOOOOOOOM'
+        },
+        charged: {
+            speed: 35,
+            damage: 10,
+            size: 5,
+            piercing: false,
+            special: true,
+            displayText: "REAL FAST BOOM",
         }
     }
 };

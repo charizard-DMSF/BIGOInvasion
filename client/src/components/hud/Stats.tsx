@@ -47,7 +47,8 @@ const Hud = () => {
     const gunConfig: Record<string, { name: string, key: string }> = {
         'basic': { name: 'Debug Logger', key: '1' },
         'spread': { name: 'Multi Logger', key: '2' },
-        'sniper': { name: 'Stack Trace', key: '3' }
+        'sniper': { name: 'Stack Trace', key: '3' },
+        'machineGun': { name: 'Rapid API Calls', key: '4' }
     };
 
     return (

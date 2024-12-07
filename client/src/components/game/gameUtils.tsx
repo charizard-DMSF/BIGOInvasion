@@ -121,7 +121,7 @@ export const usePlayerMovement = (
 /**
  * useProjectiles handles creation, movement, and cleanup of projectiles
  */
-export const useProjectiles = (gameStatus: GameStatus) => {
+export const useProjectiles = (gameStatus: GameStatus,  playerPosition: { x: number; y: number }) => {
   const dispatch = useAppDispatch();
   const projectiles = useAppSelector((state) => state.game.projectiles);
   const currentGun = useAppSelector((state) => state.game.currentGun);
@@ -141,7 +141,7 @@ export const useProjectiles = (gameStatus: GameStatus) => {
             ...projectile,
             position: {
               x:
-                projectile.position.x +
+                projectile.position.x + +
                 projectile.direction.x * config.speed * (deltaTime / 16.667),
               y:
                 projectile.position.y +
@@ -159,7 +159,7 @@ export const useProjectiles = (gameStatus: GameStatus) => {
 
       dispatch(updateProjectiles(updatedProjectiles));
     },
-    [projectiles, gameStatus, dispatch, currentGun, gunConfig]
+    [projectiles, gameStatus, dispatch, currentGun, gunConfig, playerPosition]
   );
 
   return { projectiles, updateProjectilePositions };
@@ -211,8 +211,8 @@ export const usePlayerAbilities = (
   );
 
   const releaseProjectile = useCallback(
-    (e: MouseEvent) => {
-      if (gameStatus !== 'playing' || !isCharging || inStore) return;
+    (e: MouseEvent, ignoreCharge = false, playerPositionOverrideX: (number) = playerPosition.x, playerPositionOverrideY: (number) = playerPosition.y) => {
+      if (gameStatus !== 'playing' || (!isCharging && !ignoreCharge) || inStore) return;
 
       const chargeTime = Date.now() - chargeStartTimestamp;
       const isFullyCharged = chargeTime >= (gunConfig.charged?.chargeTime || 0);
@@ -224,8 +224,8 @@ export const usePlayerAbilities = (
       const mouseX = e.clientX - boardRect.left - cameraTransform.x;
       const mouseY = e.clientY - boardRect.top - cameraTransform.y;
 
-      const directionX = mouseX - playerPosition.x;
-      const directionY = mouseY - playerPosition.y;
+      const directionX = mouseX - playerPositionOverrideX;
+      const directionY = mouseY - playerPositionOverrideY;
 
       const distance = Math.sqrt(
         directionX * directionX + directionY * directionY
