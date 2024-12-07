@@ -20,7 +20,8 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
     const [saveError, setSaveError] = useState<string | null>(null);
 
     const handleSaveAndQuit = async () => {
-        if (!user) {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
             console.error('No user found');
             return;
         }
@@ -28,20 +29,16 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
         try {
             setIsSaving(true);
             setSaveError(null);
-            const userData = JSON.parse(user);
+            const userData = JSON.parse(userStr);
 
-            console.log('User data from localStorage:', userData);
-
-            // Use user_id consistently
+            // Ensure we have user_id
             const userId = userData.user_id;
-
             if (!userId) {
-                console.error('Missing user ID in stored data:', userData);
                 throw new Error('User ID not found in stored data');
             }
 
             const payload = {
-                userId: userId,  // This will now be the user_id from the database
+                userId: userId,
                 gameState: {
                     currentLevel: gameState.currentLevel,
                     levelKillCount: gameState.levelKillCount,
@@ -56,9 +53,6 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
                 }
             };
 
-            // Add logging to verify payload
-            console.log('Sending save game payload:', payload);
-
             const response = await fetch('http://localhost:8080/saveGame', {
                 method: 'POST',
                 headers: {
@@ -68,11 +62,9 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
                 body: JSON.stringify(payload)
             });
 
-            const responseData = await response.json();
-            console.log('Save game response:', responseData);
-
+            const data = await response.json();
             if (!response.ok) {
-                throw new Error(responseData.error || 'Failed to save game');
+                throw new Error(data.error || 'Failed to save game');
             }
 
             dispatch(setGameStatus('menu'));

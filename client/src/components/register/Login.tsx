@@ -34,26 +34,28 @@ const Login = () => {
         },
         body: JSON.stringify(formData),
       });
+
       const data = await response.json();
 
-      // Debug log to see what we're getting from the server
+      // Add debug logging
       console.log('Server response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Make sure we're storing the complete user data
-      if (!data.user?.id) {
+      // Verify user_id exists before storing
+      if (!data.user?.user_id) {  // Changed from data.user?.id to data.user?.user_id
         console.error('User ID missing from server response:', data);
         throw new Error('Invalid server response');
       }
 
+      // Store the complete user object
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Debug log to verify what we stored
-      console.log('Stored user data:', JSON.parse(localStorage.getItem('user') || '{}'));
+      localStorage.setItem('user', JSON.stringify({
+        user_id: data.user.user_id,  // Make sure we're using user_id consistently
+        username: data.user.username
+      }));
 
       message.success('Login successful!');
       navigate('/');

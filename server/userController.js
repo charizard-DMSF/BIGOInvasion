@@ -3,28 +3,21 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
 const userController = {
-
-
     createUser: async (req, res, next) => {
         try {
             const { username, password } = req.body;
             const { data: existingUser } = await supabase
-            .from('User')
-            .select('*')
-            .eq('username', username)
-            .single();
-            
+                .from('User')
+                .select('*')
+                .eq('username', username)
+                .single();
+
             if (existingUser) {
                 return res.status(400).json({error: "Username already exists"})
             }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
             
-
-            // hash password 
-            const salt_factor = 10;
-            const hashedPassword = await bcrypt.hash(password, salt_factor);
-
-
-            console.log('Attempting insert with:', { username, hashedPassword });
             const { data: newUser, error } = await supabase
                 .from('User')
                 .insert([{
@@ -33,37 +26,36 @@ const userController = {
                 }])
                 .select()
                 .single();
-            console.log('Supabase response:', { newUser, error });
-            
-            if (error) throw error;
-                
-            const token = jwt.sign(
-            { userId: newUser.id, username: newUser.username },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-             );
 
+            if (error) throw error;
+
+            // Use consistent user_id field
+            const token = jwt.sign(
+                { 
+                    user_id: newUser.user_id, // Changed from newUser.id
+                    username: newUser.username 
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
 
             res.status(201).json({
-                    message: "User successfully created!",
-                    token,
-                    user: {
-                        user_id: newUser.user_id,  // Use user_id consistently
-                        username: newUser.username
-                    }
-                })
+                message: "User successfully created!",
+                token,
+                user: {
+                    user_id: newUser.user_id,
+                    username: newUser.username
+                }
+            });
         } catch (error) {
-            res.status(500).json({ error: error.message })
-       }
-
-
-     },
-
+            res.status(500).json({ error: error.message });
+        }
+    },
 
 login: async (req, res, next) => {
     try {
         const { username, password } = req.body;
-        // find user
+        
         const { data: user, error } = await supabase
             .from('User')
             .select('*')
@@ -71,34 +63,46 @@ login: async (req, res, next) => {
             .single();
 
         if (error || !user) {
-            return res.status(500).json({error: 'username does not exist'})
-        }
-        
-        // check password
-        const validPassword = await bcrypt.compare(password, user.hashedPassword);
-        if (!validPassword) {
-            return res.status(500).json({error: 'password incorrect'})
+            return res.status(401).json({error: 'Invalid username or password'});
         }
 
-        // Create JWT token
+        const validPassword = await bcrypt.compare(password, user.hashedPassword);
+        if (!validPassword) {
+            return res.status(401).json({error: 'Invalid username or password'});
+        }
+
         const token = jwt.sign(
-            { userId: user.user_id, username: user.username },  // Make sure to use user_id here
+            { 
+                user_id: user.user_id,  // Make sure this matches your database field
+                username: user.username 
+            },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        // Send consistent user data structure
+        // Log the user object before sending
+        console.log('User object:', user);
+        console.log('Response being sent:', {
+            token,
+            user: {
+                user_id: user.user_id,
+                username: user.username
+            }
+        });
+
         res.json({
             token,
             user: {
-                user_id: user.user_id,  // Use user_id consistently
+                user_id: user.user_id,
                 username: user.username
             }
         });
     } catch (error) {
-        res.status(500).json({error: error.message})
+        console.error('Login error:', error);
+        res.status(500).json({error: error.message});
     }
-},
+    },
+};
 
     authenticateToken: async (req, res, next) => {
         const authHeader = req.headers['authorization'];
@@ -117,6 +121,5 @@ login: async (req, res, next) => {
         })
 
     }
-}
 
 export default userController;

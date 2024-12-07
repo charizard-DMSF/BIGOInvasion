@@ -40,81 +40,66 @@ getUserName: async (req, res, next) => {
 
     // Save Session
 saveGameState: async (req, res, next) => {
-    console.log('Received request body:', req.body);
-    console.log('Headers:', req.headers);
-    
     try {
         const { userId, gameState } = req.body;
         
-        // Validate input
         if (!userId) {
             console.log('Missing userId');
             return res.status(400).json({ error: 'Missing userId' });
         }
         
-        if (!gameState) {
-            console.log('Missing gameState');
-            return res.status(400).json({ error: 'Missing gameState' });
-        }
-
-        console.log('UserID:', userId);
-        console.log('GameState:', gameState);
-
-        // First delete any existing saves for this user
+        // Delete existing session for this user
         const { error: deleteError } = await supabase
-            .from('SavedGames')
+            .from('Session')
             .delete()
             .eq('user_id', userId);
+            
+        if (deleteError) throw deleteError;
 
-        if (deleteError) {
-            console.error('Delete error:', deleteError);
-            return res.status(500).json({ error: deleteError.message });
-        }
-
-        // Then insert the new save
-        const { data, error: insertError } = await supabase
-            .from('SavedGames')
+        // Create new session
+        const { data, error } = await supabase
+            .from('Session')
             .insert([{
                 user_id: userId,
-                game_state: gameState,
-                saved_at: new Date().toISOString()
+                gameState: gameState,
+                created_at: new Date().toISOString()
             }])
             .select()
             .single();
 
-        if (insertError) {
-            console.error('Insert error:', insertError);
-            return res.status(500).json({ error: insertError.message });
-        }
-
-        res.locals.savedGame = data;
-        return res.status(200).json({ message: 'Game saved successfully', data });
+        if (error) throw error;
+        
+        res.status(200).json({
+            message: 'Game saved successfully',
+            data
+        });
     } catch (error) {
         console.error('Save game error:', error);
-        return res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 },
  
  //load  session
 
-  loadGameState: async (req, res, next) => {
+loadGameState: async (req, res, next) => {
     const userId = req.params.userId;
-    
     try {
-      const { data, error } = await supabase
-        .from('SavedGames')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+        const { data, error } = await supabase
+            .from('Session')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
 
-      if (error) throw error;
-      
-      res.locals.gameState = data?.game_state || null;
-      next();
+        if (error) throw error;
+        
+        res.locals.gameState = data?.gameState || null;
+        next();
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
-  }
+}
 };
 
 

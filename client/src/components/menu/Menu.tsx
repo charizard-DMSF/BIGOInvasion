@@ -12,29 +12,31 @@ const Menu = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const user = localStorage.getItem('user');
-      if (user) {
-        const userData = JSON.parse(user);
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const userData = JSON.parse(userStr);
         setIsAuthenticated(true);
 
-        try {
-          const response = await fetch(`http://localhost:8080/loadGame/${userData.id}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
+        if (userData.user_id) {
+          try {
+            const response = await fetch(`http://localhost:8080/loadGame/${userData.user_id}`, {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            });
 
-          if (response.ok) {
-            const { gameState } = await response.json();
-            if (gameState) {
-              setSavedGame({
-                currentLevel: gameState.currentLevel,
-                lastSaved: gameState.lastSaved
-              });
+            if (response.ok) {
+              const { gameState } = await response.json();
+              if (gameState) {
+                setSavedGame({
+                  currentLevel: gameState.currentLevel,
+                  lastSaved: new Date().toISOString()
+                });
+              }
             }
+          } catch (error) {
+            console.error('Failed to check saved game:', error);
           }
-        } catch (error) {
-          console.error('Failed to check saved game:', error);
         }
       }
     };
