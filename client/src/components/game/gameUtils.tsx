@@ -31,13 +31,22 @@ type GameStatus = 'menu' | 'playing' | 'gameOver' | 'victory';
  * @returns Coordinates for where tha camera should be locking in
  */
 export const useCamera = (playerPosition: { x: number; y: number }) => {
-    const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
-    const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 100 });
+  const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
+  const [visibleLineRange, setVisibleLineRange] = useState({
+    start: 0,
+    end: 100,
+  });
 
-    const updateCamera = useCallback(() => {
-        // calculate camera position with bounds checking to prevent out-of-bounds scrolling
-        const targetY = Math.max(0, Math.min(5850, playerPosition.y - VIEWPORT.HEIGHT / 3));
-        const targetX = Math.max(0, Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2));
+  const updateCamera = useCallback(() => {
+    // calculate camera position with bounds checking to prevent out-of-bounds scrolling
+    const targetY = Math.max(
+      0,
+      Math.min(5850, playerPosition.y - VIEWPORT.HEIGHT / 3)
+    );
+    const targetX = Math.max(
+      0,
+      Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2)
+    );
 
     const startLine = Math.max(0, Math.floor(targetY / 12));
     const endLine = Math.min(500, startLine + Math.ceil(VIEWPORT.HEIGHT / 12));
@@ -92,11 +101,12 @@ export const usePlayerMovement = (
         verticalMovement /= Math.sqrt(2);
       }
 
-      const BASE_SPEED = 5;
+      const BASE_SPEED = 3;
+      const speedMultiplier = PLAYER?.SPEED?.value ?? 1;
+      const dashMultiplier = PLAYER?.DASH_SPEED_MULTIPLIER?.value ?? 2;
 
       const currentSpeed =
-        (BASE_SPEED + PLAYER.SPEED.value * 1) *
-        (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER.value : 1);
+        BASE_SPEED * speedMultiplier * (isDashing ? dashMultiplier : 1);
 
       horizontalMovement *= currentSpeed * (deltaTime / 16.667);
       verticalMovement *= currentSpeed * (deltaTime / 16.667);
@@ -106,12 +116,12 @@ export const usePlayerMovement = (
         Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
       );
 
-        const newY = Math.max(
-            //top boundary
-            SIZE / 2,
-            //bottom 
-            Math.min(509 * 12, playerPosition.y + verticalMovement)
-        );
+      const newY = Math.max(
+        //top boundary
+        SIZE / 2,
+        //bottom
+        Math.min(509 * 12, playerPosition.y + verticalMovement)
+      );
 
       dispatch(movePlayer({ x: newX, y: newY }));
       updateCamera();
@@ -193,7 +203,13 @@ export const usePlayerAbilities = (
   const [canDash, setCanDash] = useState(true);
   const [isCharging, setIsCharging] = useState(false);
   const [chargeStartTimestamp, setChargeStartTimestamp] = useState(0);
+
+  // Default values in case stats are undefined
+  const DASH_DURATION_DEFAULT = 150;
+  const DASH_COOLDOWN_DEFAULT = 50;
+
   const PLAYER = useAppSelector((state) => state.game.stats);
+  const DASH_COOLDOWN = useAppSelector((state) => state.game.DASH_COOLDOWN_MS);
   const currentGun = useAppSelector((state) => state.game.currentGun);
   const gunConfig = GUNS[currentGun];
 
@@ -203,14 +219,19 @@ export const usePlayerAbilities = (
     setIsDashing(true);
     setCanDash(false);
 
+    // Access DASH_DURATION_MS and DASH_COOLDOWN_MS directly from PLAYER
+    const dashDuration =
+      PLAYER?.DASH_DURATION_MS?.value ?? DASH_DURATION_DEFAULT;
+    const dashCooldown = DASH_COOLDOWN ?? DASH_COOLDOWN_DEFAULT;
+
     setTimeout(() => {
       setIsDashing(false);
-    }, PLAYER.DASH_DURATION_MS.value);
+    }, dashDuration);
 
     setTimeout(() => {
       setCanDash(true);
-    }, PLAYER.DASH_DURATION_MS.value + PLAYER.DASH_COOLDOWN_MS.value);
-  }, [canDash, gameStatus, PLAYER.DASH_DURATION_MS, PLAYER.DASH_COOLDOWN_MS]);
+    }, dashDuration + dashCooldown);
+  }, [canDash, gameStatus, PLAYER]);
 
   const startProjectileCharge = useCallback(
     (e: MouseEvent) => {
@@ -321,18 +342,17 @@ export const renderLineNumbers = (
       linePosition >= -cameraTransform.y &&
       linePosition <= -cameraTransform.y + VIEWPORT.HEIGHT;
 
-        // only render numbers for visible lines
-        if (isVisible) {
-            // create span element for line number with:
-            // unique key for React reconciliation
-            // absolute positioning for precise placement
-            // top position set to exact pixel location
-            numbers.push(<div>{i}</div>);
-        }
+    // only render numbers for visible lines
+    if (isVisible) {
+      // create span element for line number with:
+      // unique key for React reconciliation
+      // absolute positioning for precise placement
+      // top position set to exact pixel location
+      numbers.push(<div>{i}</div>);
     }
-    return numbers;
+  }
+  return numbers;
 };
-
 
 /**
  * renderEnemies creates React components for each enemy in the provided array
