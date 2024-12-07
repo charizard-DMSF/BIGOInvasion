@@ -27,6 +27,19 @@ export interface Enemy {
   type: EnemyTypeKey;
 }
 
+interface SavedState {
+  currentLevel: number;
+  levelKillCount: number;
+  score: number;
+  playerHealth: number;
+  mathbucks: number;
+  unlockedGuns: string[];
+  stats: { [key: string]: number };
+  powerUps: { [key: string]: number };
+  playerPosition: Position;
+  enemies: Enemy[];
+}
+
 interface GameState {
   playerPosition: Position;
   playerHealth: number;
@@ -199,20 +212,9 @@ const gameSlice = createSlice({
     advanceLevel: (state) => {
         state.currentLevel += 1;
     },
-    loadSavedGameState: (state, action: PayloadAction<{
-      currentLevel: number;
-      levelKillCount: number;
-      score: number;
-      playerHealth: number;
-      mathbucks: number;
-      unlockedGuns: string[];
-      stats: { [key: string]: number };
-      powerUps: { [key: string]: number };
-      playerPosition: Position;
-      enemies: Enemy[];  
-    }>) => {
+    loadSavedGameState: (state, action: PayloadAction<SavedState>) => {
       const savedState = action.payload;
-      state.gameStatus = 'loading';  
+      state.gameStatus = 'loading';
       state.currentLevel = savedState.currentLevel;
       state.levelKillCount = savedState.levelKillCount;
       state.score = savedState.score;
@@ -222,10 +224,10 @@ const gameSlice = createSlice({
       state.stats = savedState.stats;
       state.powerUps = savedState.powerUps;
       state.playerPosition = savedState.playerPosition;
-      state.enemies = savedState.enemies || []; 
-      state.projectiles = [];  
+      state.enemies = savedState.enemies || [];
+      state.projectiles = [];
     },
-
+  
     finishLoading: (state) => {
       state.gameStatus = 'playing';
     }

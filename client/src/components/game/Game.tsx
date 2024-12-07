@@ -33,7 +33,14 @@ import {
 import { GUNS } from './Guns';
 import { useLevelManager } from './LevelManager';
 
+/**
+ * main game component responsible for managing game state, physics, and rendering
+ * @returns React Component
+ */
 const Game: React.FC = () => {
+  // ---------------
+  // refs & basic state
+  // ---------------
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const worldRef = useRef<HTMLDivElement>(null);
@@ -41,20 +48,36 @@ const Game: React.FC = () => {
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
 
-  // Redux state selectors
-  const currentGun = useAppSelector((state) => state.game.currentGun);
+  // ---------------
+  // redux state selectors
+  // grouped by related functionality
+  // ---------------
+  // game state
+  const gameStatus = useAppSelector((state) => state.game.gameStatus);
+  const currentLevel = useAppSelector((state) => state.game.currentLevel);
+  const inStore = useAppSelector((state) => state.game.inStore);
+
+  // ui state
   const isPaused = useAppSelector((state) => state.game.isPaused);
   const isLeaderboardOpen = useAppSelector((state) => state.game.isLeaderboardOpen);
   const isStatsOpen = useAppSelector((state) => state.game.isStatsOpen);
-  const enemies = useAppSelector((state) => state.game.enemies);
-  const currentLevel = useAppSelector((state) => state.game.currentLevel);
-  const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } = useAppSelector((state) => state.game);
 
-  // Custom hooks
+  // gameplay state
+  const currentGun = useAppSelector((state) => state.game.currentGun);
+  const enemies = useAppSelector((state) => state.game.enemies);
+  const playerPosition = useAppSelector((state) => state.game.playerPosition);
+  const projectiles = useAppSelector((state) => state.game.projectiles);
+  const unlockedGuns = useAppSelector((state) => state.game.unlockedGuns);
+
+  // ---------------
+  // custom hooks
+  // each hook manages a specific piece of functionality
+  // ---------------
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
-  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat} = useLevelManager(cameraTransform);
+  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat } = useLevelManager(cameraTransform);
+
   const {
     isDashing,
     isCharging,
@@ -66,7 +89,11 @@ const Game: React.FC = () => {
     setIsCharging,
   } = usePlayerAbilities(gameStatus, inStore, playerPosition, cameraTransform);
 
-  const { isMoving, setIsMoving, updatePlayerPosition } = usePlayerMovement(
+  const {
+    isMoving,
+    setIsMoving,
+    updatePlayerPosition
+  } = usePlayerMovement(
     updateCamera,
     activeKeys,
     isDashing,
@@ -74,12 +101,22 @@ const Game: React.FC = () => {
     inStore
   );
 
-  // Player damage cooldown state
+  // ---------------
+  // player damage handling
+  // manages invulnerability frames after taking damage
+  // ---------------
   const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
   const isInvulnerableRef = useRef(false);
   const damageCooldown = 1000;
 
-  // Load saved game
+  useEffect(() => {
+    isInvulnerableRef.current = isPlayerInvulnerable;
+  }, [isPlayerInvulnerable]);
+
+  // ---------------
+  // saved game loading
+  // handles loading game state from backend
+  // ---------------
   useEffect(() => {
     const loadSave = searchParams.get('loadSave');
     const user = localStorage.getItem('user');
@@ -100,16 +137,11 @@ const Game: React.FC = () => {
           const { gameState } = await response.json();
 
           if (gameState) {
-            // Load the complete state including enemies
             dispatch(loadSavedGameState({
               ...gameState,
-              enemies: gameState.enemies || [] // Include enemies in load
+              enemies: gameState.enemies || []
             }));
-
-            // Don't initialize level with new enemies
             dispatch(movePlayer(gameState.playerPosition));
-
-            // Finally set to playing
             dispatch(finishLoading());
           }
         } catch (error) {
@@ -122,17 +154,16 @@ const Game: React.FC = () => {
     }
   }, [dispatch, searchParams]);
 
-  // Update invulnerability ref
-  useEffect(() => {
-    isInvulnerableRef.current = isPlayerInvulnerable;
-  }, [isPlayerInvulnerable]);
-
-  // Collision detection
+  // ---------------
+  // collision detection system
+  // handles all game collision checks and responses
+  // ---------------
   const checkCollisions = useCallback(() => {
     const updatedProjectiles = [...projectiles];
     const updatedEnemies = [...enemies];
     let projectilesToRemove = new Set();
 
+    // player hitbox
     const playerBox = {
       left: playerPosition.x,
       right: playerPosition.x + 8,
@@ -140,7 +171,7 @@ const Game: React.FC = () => {
       bottom: playerPosition.y + 8,
     };
 
-    // Check projectile-enemy collisions
+    // check projectile-enemy collisions
     updatedProjectiles.forEach((projectile) => {
       const projectileBox = {
         left: projectile.position.x,
@@ -183,7 +214,7 @@ const Game: React.FC = () => {
       });
     });
 
-    // Check enemy-player collisions
+    // check enemy-player collisions
     if (!isInvulnerableRef.current) {
       for (const enemy of updatedEnemies) {
         const enemyBox = {
@@ -223,7 +254,7 @@ const Game: React.FC = () => {
       }
     }
 
-    // Remove used projectiles
+    // cleanup destroyed projectiles
     if (projectilesToRemove.size > 0) {
       const remainingProjectiles = updatedProjectiles.filter(
         (p) => !projectilesToRemove.has(p.id)
@@ -232,7 +263,10 @@ const Game: React.FC = () => {
     }
   }, [projectiles, enemies, currentGun, playerPosition, dispatch, handleEnemyDefeat]);
 
-  // Update enemy positions
+  // ---------------
+  // enemy movement system
+  // updates enemy positions based on player location
+  // ---------------
   const updateEnemyPositions = useCallback(
     (deltaTime: number) => {
       const updatedEnemies = enemies.map((enemy) => {
@@ -259,7 +293,10 @@ const Game: React.FC = () => {
     [enemies, dispatch, playerPosition]
   );
 
-  // Game loop
+  // ---------------
+  // main game loop
+  // orchestrates all game updates
+  // ---------------
   const gameLoop = useCallback(
     (timestamp: number) => {
       if (gameStatus !== 'playing' || inStore || isPaused || isLevelTransitioning) return;
@@ -290,7 +327,10 @@ const Game: React.FC = () => {
     ]
   );
 
-  // Event handlers
+  // ---------------
+  // event handlers
+  // manage keyboard and mouse input
+  // ---------------
   const handleStoreToggle = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'p' || e.key === 'P') {
@@ -326,7 +366,10 @@ const Game: React.FC = () => {
     lastFrameTimestamp.current = 0;
   }, [handleGameReset, setIsMoving]);
 
-  // Event listeners and game loop setup
+  // ---------------
+  // event listeners setup
+  // initializes all game input handling
+  // ---------------
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -336,7 +379,7 @@ const Game: React.FC = () => {
       }
       activeKeys.current[e.key] = true;
 
-      // Gun switching logic
+      // gun switching logic
       if (gameStatus === 'playing' && !inStore && !isPaused) {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
@@ -372,7 +415,7 @@ const Game: React.FC = () => {
       }
     };
 
-    // Add event listeners
+    // bind event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
@@ -382,12 +425,12 @@ const Game: React.FC = () => {
     window.addEventListener('keydown', handleEscape);
     window.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    // Start game loop
+    // start game loop if conditions are met
     if (gameStatus === 'playing' && !inStore && !isPaused) {
       frameRequestId.current = requestAnimationFrame(gameLoop);
     }
 
-    // Cleanup
+    // cleanup function
     return () => {
       if (frameRequestId.current) {
         cancelAnimationFrame(frameRequestId.current);
@@ -416,124 +459,142 @@ const Game: React.FC = () => {
     unlockedGuns,
   ]);
 
-  // Render store if in store mode
-  if (inStore) {
-    return <Store />;
-  }
+// ---------------
+// conditional rendering
+// handle store mode
+// ---------------
+if (inStore) {
+  return <Store />;
+}
 
-  const { Header } = Layout;
+// ---------------
+// layout configuration
+// ---------------
+const { Header } = Layout;
+const layoutStyle = {
+  borderRadius: 8,
+  overflow: 'hidden',
+  width: 'calc(100% - 8px)',
+  maxWidth: 'calc(100% - 8px)',
+};
 
-  const layoutStyle = {
-    borderRadius: 8,
-    overflow: 'hidden',
-    width: 'calc(100% - 8px)',
-    maxWidth: 'calc(100% - 8px)',
-  };
+// ---------------
+// main render
+// includes all game ui elements and states
+// ---------------
+return (
+  <Layout style={layoutStyle}>
+    {/* game header with stats */}
+    <Header className='headerStyle'>
+      <Hud />
+    </Header>
 
-  return (
-    <Layout style={layoutStyle}>
-      <Header className='headerStyle'>
-        <Hud />
-      </Header>
-      <div className='content-container'></div>
-      <div className="game-container">
-        {/* Level transition overlay */}
-        {gameStatus === 'playing' && isLevelTransitioning && (
-          <div className="level-transition">
-            <h2>Level {currentLevel} Complete!</h2>
-            <p>Reward: {currentLevelConfig.mathbucksReward} Mathbucks</p>
-            {currentLevel >= 7 ? (
-              <p>Entering Endless Mode - Level {currentLevel + 1}...</p>
-            ) : (
-              <p>Preparing Level {currentLevel + 1}...</p>
-            )}
-          </div>
-        )}
+    <div className='content-container'></div>
+    <div className="game-container">
+      {/* level transition overlay */}
+      {gameStatus === 'playing' && isLevelTransitioning && (
+        <div className="level-transition">
+          <h2>Level {currentLevel} Complete!</h2>
+          <p>Reward: {currentLevelConfig.mathbucksReward} Mathbucks</p>
+          {currentLevel >= 7 ? (
+            <p>Entering Endless Mode - Level {currentLevel + 1}...</p>
+          ) : (
+            <p>Preparing Level {currentLevel + 1}...</p>
+          )}
+        </div>
+      )}
 
-        {/* Victory state */}
-        {gameStatus === 'victory' && (
-          <div className="menu-container">
-            <h2>Congratulations!</h2>
-            <p>You've completed all levels!</p>
-            <button onClick={handleCompleteReset}>Play Again</button>
-          </div>
-        )}
+      {/* victory state overlay */}
+      {gameStatus === 'victory' && (
+        <div className="menu-container">
+          <h2>Congratulations!</h2>
+          <p>You've completed all levels!</p>
+          <button onClick={handleCompleteReset}>Play Again</button>
+        </div>
+      )}
 
-        {/* Game over state */}
-        {gameStatus === 'gameOver' && (
-          <div className="menu-container">
-            <button onClick={handleCompleteReset}>Try Again</button>
-          </div>
-        )}
+      {/* game over state overlay */}
+      {gameStatus === 'gameOver' && (
+        <div className="menu-container">
+          <button onClick={handleCompleteReset}>Try Again</button>
+        </div>
+      )}
 
-        <div className="game-board">
-          <div className="line-numbers">
-            {renderLineNumbers(500, 12, cameraTransform)}
-          </div>
-          <div
-            ref={worldRef}
-            className="game-world"
-            style={{
-              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
-            }}
-          >
-            {gameStatus === 'menu' && (
-              <div className="menu-container">
-                <button onClick={handleGameStart}>Start Game</button>
-              </div>
-            )}
-
-            {/* Playing state */}
-            {gameStatus === 'playing' && (
-              <>
-                {renderEnemies(enemies)}
-                {/* Player */}
-                <div
-                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''
-                    }`}
-                  style={{
-                    left: `${playerPosition.x}px`,
-                    top: `${playerPosition.y}px`,
-                  }}
-                />
-
-                {/* Projectiles */}
-                {projectiles.map((projectile) => {
-                  const gunConfig = GUNS[currentGun];
-                  const projectileConfig = projectile.isCharged
-                    ? gunConfig.charged || gunConfig.normal
-                    : gunConfig.normal;
-
-                  return (
-                    <div
-                      key={projectile.id}
-                      className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
-                      style={{
-                        left: `${projectile.position.x}px`,
-                        top: `${projectile.position.y}px`,
-                        width: `${projectileConfig.size}px`,
-                        height: `${projectileConfig.size}px`,
-                      }}>
-                      {projectileConfig.displayText}
-                    </div>
-                  );
-                })}
-              </>
-            )}
-          </div>
+      {/* main game board */}
+      <div className="game-board">
+        {/* line numbers for visual reference */}
+        <div style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+          {renderLineNumbers(500, 12, cameraTransform)}
         </div>
 
-        {/* Pause Menu */}
-        {gameStatus === 'playing' && isPaused && (
-          <PauseMenu
-            onResume={() => dispatch(togglePause())}
-            isLeaderboardOpen={isLeaderboardOpen}
-            isStatsOpen={isStatsOpen}
-          />
-        )}
+        {/* game world container */}
+        <div
+          ref={worldRef}
+          className="game-world"
+          style={{
+            transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
+          }}
+        >
+          {/* menu state */}
+          {gameStatus === 'menu' && (
+            <div className="menu-container">
+              <button onClick={handleGameStart}>Start Game</button>
+            </div>
+          )}
+
+          {/* active gameplay elements */}
+          {gameStatus === 'playing' && (
+            <>
+              {/* render all enemies */}
+              {renderEnemies(enemies)}
+
+              {/* player character */}
+              <div
+                className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''
+                  }`}
+                style={{
+                  left: `${playerPosition.x}px`,
+                  top: `${playerPosition.y}px`,
+                }}
+              />
+
+              {/* projectiles */}
+              {projectiles.map((projectile) => {
+                const gunConfig = GUNS[currentGun];
+                const projectileConfig = projectile.isCharged
+                  ? gunConfig.charged || gunConfig.normal
+                  : gunConfig.normal;
+
+                return (
+                  <div
+                    key={projectile.id}
+                    className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
+                    style={{
+                      left: `${projectile.position.x}px`,
+                      top: `${projectile.position.y}px`,
+                      width: `${projectileConfig.size}px`,
+                      height: `${projectileConfig.size}px`,
+                    }}>
+                    {projectileConfig.displayText}
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
       </div>
-    </Layout>
-  );
+
+      {/* pause menu overlay */}
+      {gameStatus === 'playing' && isPaused && (
+        <PauseMenu
+          onResume={() => dispatch(togglePause())}
+          isLeaderboardOpen={isLeaderboardOpen}
+          isStatsOpen={isStatsOpen}
+        />
+      )}
+    </div>
+  </Layout>
+);
 };
 
 export default Game;

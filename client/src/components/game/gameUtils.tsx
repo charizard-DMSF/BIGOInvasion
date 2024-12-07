@@ -12,33 +12,43 @@ import { GUNS } from './Guns';
 import EnemyComponent from './Enemy';
 import { Enemy } from '../../storeRedux/gameSlice';
 
+/**
+ * Viewport constants defining the game's visible area
+ */
 const VIEWPORT = {
   WIDTH: 1200,
   HEIGHT: 800,
 };
 
+/**
+ * Interface defining the return type for player movement hook
+ */
 interface PlayerMovementReturn {
   isMoving: boolean;
   setIsMoving: (value: boolean) => void;
   updatePlayerPosition: (deltaTime: number) => void;
 }
 
+/**
+ * Type defining possible game states
+ */
 type GameStatus = 'menu' | 'playing' | 'gameOver' | 'victory' | 'loading';
 
 /**
  * useCamera handles viewport positioning and visible line range calculations
- * @param playerPosition - player position control
- * @returns Coordinates for where tha camera should be locking in
+ * **@param** playerPosition - player position control
+ * **@returns** Coordinates for where tha camera should be locking in
  */
 export const useCamera = (playerPosition: { x: number; y: number }) => {
-    const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
-    const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 100 });
+  const [cameraTransform, setCameraTransform] = useState({ x: 0, y: 0 });
+  const [visibleLineRange, setVisibleLineRange] = useState({ start: 0, end: 100 });
 
-    const updateCamera = useCallback(() => {
-        // calculate camera position with bounds checking to prevent out-of-bounds scrolling
-        const targetY = Math.max(0, Math.min(5850, playerPosition.y - VIEWPORT.HEIGHT / 3));
-        const targetX = Math.max(0, Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2));
+  const updateCamera = useCallback(() => {
+    // calculate camera position with bounds checking to prevent out-of-bounds scrolling
+    const targetY = Math.max(0, Math.min(5850, playerPosition.y - VIEWPORT.HEIGHT / 3));
+    const targetX = Math.max(0, Math.min(VIEWPORT.WIDTH - 1200, playerPosition.x - VIEWPORT.WIDTH / 2));
 
+    // calculate visible line range based on camera position
     const startLine = Math.max(0, Math.floor(targetY / 12));
     const endLine = Math.min(500, startLine + Math.ceil(VIEWPORT.HEIGHT / 12));
     setVisibleLineRange({ start: startLine, end: endLine });
@@ -53,7 +63,13 @@ export const useCamera = (playerPosition: { x: number; y: number }) => {
 };
 
 /**
- * usePlayerMovement handles all player position updates and movement calculations
+ * usePlayerMovement manages player position updates and movement calculations
+ * **@param** updateCamera - Function to update camera position
+ * **@param** activeKeys - Reference to currently pressed keys
+ * **@param** isDashing - Boolean indicating if player is dashing
+ * **@param** gameStatus - Current game state
+ * **@param** inStore - Boolean indicating if player is in store
+ * **@returns** Object containing movement state and update function
  */
 export const usePlayerMovement = (
   updateCamera: () => void,
@@ -73,6 +89,7 @@ export const usePlayerMovement = (
     (deltaTime: number) => {
       if (gameStatus !== 'playing' || inStore) return;
 
+      // calculate movement based on active keys
       let horizontalMovement = 0;
       let verticalMovement = 0;
 
@@ -87,27 +104,27 @@ export const usePlayerMovement = (
 
       if (!isPlayerMoving) return;
 
+      // normalize diagonal movement
       if (horizontalMovement !== 0 && verticalMovement !== 0) {
         horizontalMovement /= Math.sqrt(2);
         verticalMovement /= Math.sqrt(2);
       }
 
-      const currentSpeed =
-        PLAYER.SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
+      // apply speed and dash multipliers
+      const currentSpeed = PLAYER.SPEED * (isDashing ? PLAYER.DASH_SPEED_MULTIPLIER : 1);
       horizontalMovement *= currentSpeed * (deltaTime / 16.667);
       verticalMovement *= currentSpeed * (deltaTime / 16.667);
 
+      // apply boundary constraints
       const newX = Math.max(
         50 + SIZE / 2,
         Math.min(1150 - SIZE * 1.5, playerPosition.x + horizontalMovement)
       );
 
-        const newY = Math.max(
-            //top boundary
-            SIZE / 2,
-            //bottom 
-            Math.min(509 * 12, playerPosition.y + verticalMovement)
-        );
+      const newY = Math.max(
+        SIZE / 2,
+        Math.min(509 * 12, playerPosition.y + verticalMovement)
+      );
 
       dispatch(movePlayer({ x: newX, y: newY }));
       updateCamera();
@@ -119,7 +136,9 @@ export const usePlayerMovement = (
 };
 
 /**
- * useProjectiles handles creation, movement, and cleanup of projectiles
+ * useProjectiles manages projectile lifecycle including creation, movement, and cleanup
+ * **@param** gameStatus - Current game state
+ * **@returns** Object containing projectiles array and update function
  */
 export const useProjectiles = (gameStatus: GameStatus) => {
   const dispatch = useAppDispatch();
@@ -131,6 +150,7 @@ export const useProjectiles = (gameStatus: GameStatus) => {
     (deltaTime: number) => {
       if (gameStatus !== 'playing') return;
 
+      // update and filter projectiles
       const updatedProjectiles = projectiles
         .map((projectile) => {
           const config = projectile.isCharged
@@ -140,12 +160,8 @@ export const useProjectiles = (gameStatus: GameStatus) => {
           return {
             ...projectile,
             position: {
-              x:
-                projectile.position.x +
-                projectile.direction.x * config.speed * (deltaTime / 16.667),
-              y:
-                projectile.position.y +
-                projectile.direction.y * config.speed * (deltaTime / 16.667),
+              x: projectile.position.x + projectile.direction.x * config.speed * (deltaTime / 16.667),
+              y: projectile.position.y + projectile.direction.y * config.speed * (deltaTime / 16.667),
             },
           };
         })
@@ -167,6 +183,11 @@ export const useProjectiles = (gameStatus: GameStatus) => {
 
 /**
  * usePlayerAbilities manages special abilities like dashing and charging projectiles
+ * **@param** gameStatus - Current game state
+ * **@param** inStore - Boolean indicating if player is in store
+ * **@param** playerPosition - Current player position
+ * **@param** cameraTransform - Current camera offset
+ * **@returns** Object containing ability states and control functions
  */
 export const usePlayerAbilities = (
   gameStatus: GameStatus,
@@ -186,6 +207,7 @@ export const usePlayerAbilities = (
   const activateDash = useCallback(() => {
     if (!canDash || gameStatus !== 'playing') return;
 
+    // initiate dash and handle cooldown
     setIsDashing(true);
     setCanDash(false);
 
@@ -214,12 +236,14 @@ export const usePlayerAbilities = (
     (e: MouseEvent) => {
       if (gameStatus !== 'playing' || !isCharging || inStore) return;
 
+      // calculate charge duration and check if fully charged
       const chargeTime = Date.now() - chargeStartTimestamp;
       const isFullyCharged = chargeTime >= (gunConfig.charged?.chargeTime || 0);
 
       const gameBoard = document.querySelector('.game-board');
       if (!gameBoard) return;
 
+      // calculate projectile direction based on mouse position
       const boardRect = gameBoard.getBoundingClientRect();
       const mouseX = e.clientX - boardRect.left - cameraTransform.x;
       const mouseY = e.clientY - boardRect.top - cameraTransform.y;
@@ -227,9 +251,7 @@ export const usePlayerAbilities = (
       const directionX = mouseX - playerPosition.x;
       const directionY = mouseY - playerPosition.y;
 
-      const distance = Math.sqrt(
-        directionX * directionX + directionY * directionY
-      );
+      const distance = Math.sqrt(directionX * directionX + directionY * directionY);
 
       dispatch(
         addProjectile({
@@ -271,7 +293,8 @@ export const usePlayerAbilities = (
 };
 
 /**
- * useGameState handles game start and reset functionality
+ * useGameState manages game start and reset functionality
+ * **@returns** Object containing game control functions
  */
 export const useGameState = () => {
   const dispatch = useAppDispatch();
@@ -289,7 +312,11 @@ export const useGameState = () => {
 };
 
 /**
- * renderLineNumbers renders line numbers with viewport optimization
+ * renderLineNumbers creates line number elements with viewport optimization
+ * **@param** totalLines - Total number of lines to render
+ * **@param** lineHeight - Height of each line
+ * **@param** cameraTransform - Current camera offset
+ * **@returns** Array of line number elements
  */
 export const renderLineNumbers = (
   totalLines: number,
@@ -297,8 +324,8 @@ export const renderLineNumbers = (
   cameraTransform: { x: number; y: number }
 ) => {
   const numbers = [];
-  // calculate max lines based on the movement boundary (509 * 12) divided by line height
-  const maxLines = Math.floor((509 * 12) / (lineHeight * 2)); // using lineHeight * 2 since we doubled spacing
+  // calculate max lines based on movement boundary
+  const maxLines = Math.floor((509 * 12) / (lineHeight * 2));
 
   for (let i = 1; i <= maxLines; i++) {
     const linePosition = (i - 1) * lineHeight * 2;
@@ -333,9 +360,10 @@ export const renderLineNumbers = (
   return numbers;
 };
 
-
 /**
- * renderEnemies creates React components for each enemy in the provided array
+ * renderEnemies creates React components for each enemy
+ * **@param** enemies - Array of enemy objects to render
+ * **@returns** Array of EnemyComponent elements
  */
 export const renderEnemies = (enemies: Enemy[]) => {
   return enemies.map((enemy: Enemy) => (

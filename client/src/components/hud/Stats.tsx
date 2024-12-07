@@ -3,10 +3,10 @@ import { useAppSelector } from '../../storeRedux/store';
 import { Heart, Trophy, Target, Shield, Bomb, Crosshair, Coins, Skull } from 'lucide-react';
 
 const Hud = () => {
-    // Add component render debug
+    // add component render debug
     console.log('Hud Component Rendering');
 
-    // Get full game state
+    // get full game state
     const gameState = useAppSelector(state => state.game);
     console.log('Full Game State:', gameState);
 
@@ -21,7 +21,7 @@ const Hud = () => {
         levelKillCount
     } = gameState;
 
-    // Get the required kills from level config
+    // get the required kills from level config
     interface LevelConfig {
         requiredKills: number;
     }
@@ -43,7 +43,7 @@ const Hud = () => {
 
     const healthPercentage = (playerHealth / 100) * 100;
 
-    // Define gun names and their corresponding key numbers
+    // define gun names and their corresponding key numbers
     const gunConfig: Record<string, { name: string, key: string }> = {
         'basic': { name: 'Debug Logger', key: '1' },
         'spread': { name: 'Multi Logger', key: '2' },
@@ -76,7 +76,7 @@ const Hud = () => {
                 <div className="level-display">
                     <Skull size={20} color="#4CAF50" />
                     <span className="level-value">
-                        {levelKillCount}/{currentLevelConfig.requiredKills}
+                        {levelKillCount}/{levelKillCount === 7 ? currentLevelConfig.requiredKills : "?"}
                     </span>
                 </div>
             </div>
