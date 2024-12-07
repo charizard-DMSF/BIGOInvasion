@@ -29,6 +29,7 @@ import {
   useGameState,
   renderLineNumbers,
   renderEnemies,
+  useScoreSubmission
 } from './gameUtils';
 import { GUNS } from './Guns';
 import { useLevelManager } from './LevelManager';
@@ -77,6 +78,7 @@ const Game: React.FC = () => {
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
   const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat } = useLevelManager(cameraTransform);
+  const { submitScore } = useScoreSubmission()
 
   const {
     isDashing,
@@ -357,14 +359,16 @@ const Game: React.FC = () => {
     [dispatch, isLeaderboardOpen, isStatsOpen]
   );
 
+
   const handleCompleteReset = useCallback(() => {
+    submitScore(); 
     handleGameReset();
     setIsDashing(false);
     setCanDash(true);
     setIsMoving(false);
     setIsCharging(false);
     lastFrameTimestamp.current = 0;
-  }, [handleGameReset, setIsMoving]);
+  }, [handleGameReset, setIsMoving, submitScore]);
 
   // ---------------
   // event listeners setup

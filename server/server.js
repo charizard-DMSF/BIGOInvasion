@@ -17,7 +17,7 @@ app.get('/userName', dbController.getUserName, async (req, res) => {
   res.status(200).json({'data': res.locals})
 });
 
-app.post('/newScore', dbController.addHighScore, async (req, res) => {
+app.post('/newScore', userController.authenticateToken, dbController.addHighScore, async (req, res) => {
   console.log("addHighScore Activated")
   res.sendStatus(200)
 });

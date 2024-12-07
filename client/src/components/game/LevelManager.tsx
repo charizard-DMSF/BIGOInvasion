@@ -43,7 +43,7 @@ interface LevelConfig {
 export const LEVEL_CONFIGS: { [key: number]: LevelConfig } = {
     1: {
         requiredKills: 15,
-        spawnInterval: 2000,
+        spawnInterval: 1800,
         enemyTypes: { basic: 1, fast: 0, tank: 0 },
         mathbucksReward: 500
     },

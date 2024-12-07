@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
 import { setGameStatus, toggleLeaderboard, toggleStats } from '../../storeRedux/gameSlice';
 import Leaderboard from '../Leaderboard';
 import PlayerStats from '../YourStats';
+import { useScoreSubmission } from '../game/gameUtils'
 
 interface PauseMenuProps {
     onResume: () => void;
@@ -18,6 +19,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
     const user = localStorage.getItem('user');
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+    const { handleMainMenuQuit } = useScoreSubmission(); 
 
     const handleSaveAndQuit = async () => {
         const userStr = localStorage.getItem('user');
@@ -86,12 +88,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
         dispatch(toggleLeaderboard());
     };
 
-    const handleMainMenu = () => {
-        if (window.confirm('Are you sure? Any unsaved progress will be lost.')) {
-            dispatch(setGameStatus('menu'));
-            navigate('/');
-        }
-    };
+
 
     return (
         <div className="pause-menu-overlay">
@@ -119,7 +116,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
                             {isSaving ? 'Saving...' : 'Save and Quit'}
                         </button>
                     )}
-                    <button onClick={handleMainMenu}>Main Menu</button>
+                    <button onClick={handleMainMenuQuit}>Main Menu</button>
                 </div>
             </div>
             {isLeaderboardOpen && (
