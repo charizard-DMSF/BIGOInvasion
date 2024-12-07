@@ -29,10 +29,9 @@ const userController = {
 
             if (error) throw error;
 
-            // Use consistent user_id field
             const token = jwt.sign(
                 {
-                    user_id: newUser.user_id, // Changed from newUser.id
+                    user_id: newUser.user_id, 
                     username: newUser.username
                 },
                 process.env.JWT_SECRET,
@@ -73,14 +72,13 @@ const userController = {
 
             const token = jwt.sign(
                 {
-                    user_id: user.user_id,  // Make sure this matches your database field
+                    user_id: user.user_id,  
                     username: user.username
                 },
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
 
-            // Log the user object before sending
             console.log('User object:', user);
             console.log('Response being sent:', {
                 token,

@@ -31,7 +31,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
             setSaveError(null);
             const userData = JSON.parse(userStr);
 
-            // Ensure we have user_id
+            // check we have user_id
             const userId = userData.user_id;
             if (!userId) {
                 throw new Error('User ID not found in stored data');
@@ -49,7 +49,7 @@ const PauseMenu: React.FC<PauseMenuProps> = ({ onResume, isLeaderboardOpen, isSt
                     stats: gameState.stats,
                     powerUps: gameState.powerUps,
                     playerPosition: gameState.playerPosition,
-                    enemies: gameState.enemies, // Save current enemies state
+                    enemies: gameState.enemies, 
                     lastSaved: new Date().toISOString()
                 }
             };
