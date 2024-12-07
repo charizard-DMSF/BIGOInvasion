@@ -13,6 +13,7 @@ import {
   defeatEnemy,
   updateProjectiles,
   damagePlayer,
+  removeEnemy,
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -36,9 +37,7 @@ const Game: React.FC = () => {
   const activeKeys = useRef<{ [key: string]: boolean }>({});
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
-  const searchParams = useSearchParams()
-
-
+  const searchParams = useSearchParams();
 
   // redux state selectors
   const currentGun = useAppSelector((state) => state.game.currentGun);
@@ -57,7 +56,12 @@ const Game: React.FC = () => {
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
-  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat, killCount } = useLevelManager(cameraTransform);
+  const {
+    currentLevelConfig,
+    isLevelTransitioning,
+    handleEnemyDefeat,
+    killCount,
+  } = useLevelManager(cameraTransform);
 
   const {
     isDashing,
@@ -77,7 +81,6 @@ const Game: React.FC = () => {
     gameStatus,
     inStore
   );
-
 
   // add a cooldown stage for player damage
   const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
@@ -132,13 +135,12 @@ const Game: React.FC = () => {
               ? gunConfig.charged.damage
               : gunConfig.normal.damage;
 
-          // apply damage to enemy
+          const updatedHealth = enemy.health - damage;
           dispatch(damageEnemy({ id: enemy.id, damage }));
 
-          // check if enemy is defeated
-          const updatedEnemy = enemies.find((e) => e.id === enemy.id);
-          if (updatedEnemy && updatedEnemy.health <= 0) {
+          if (updatedHealth <= 0) {
             dispatch(defeatEnemy(enemy.id));
+            dispatch(removeEnemy(enemy.id));
             handleEnemyDefeat();
           }
 
@@ -199,7 +201,14 @@ const Game: React.FC = () => {
       );
       dispatch(updateProjectiles(remainingProjectiles));
     }
-  }, [projectiles, enemies, currentGun, playerPosition, dispatch, handleEnemyDefeat]);
+  }, [
+    projectiles,
+    enemies,
+    currentGun,
+    playerPosition,
+    dispatch,
+    handleEnemyDefeat,
+  ]);
 
   const updateEnemyPositions = React.useCallback(
     (deltaTime: number) => {
@@ -236,7 +245,13 @@ const Game: React.FC = () => {
   // game loop
   const gameLoop = React.useCallback(
     (timestamp: number) => {
-      if (gameStatus !== 'playing' || inStore || isPaused || isLevelTransitioning) return;
+      if (
+        gameStatus !== 'playing' ||
+        inStore ||
+        isPaused ||
+        isLevelTransitioning
+      )
+        return;
 
       if (!lastFrameTimestamp.current) {
         lastFrameTimestamp.current = timestamp;
@@ -420,11 +435,11 @@ const Game: React.FC = () => {
   const boundaryPadding = 20;
 
   return (
-      <Layout style={layoutStyle}>
-      <Header className='headerStyle'>
+    <Layout style={layoutStyle}>
+      <Header className="headerStyle">
         <Hud />
       </Header>
-      <div className='content-container'></div>
+      <div className="content-container"></div>
       <div className="game-container">
         {/* Level transition overlay */}
         {gameStatus === 'playing' && isLevelTransitioning && (
@@ -452,16 +467,17 @@ const Game: React.FC = () => {
         )}
 
         <div className="game-board">
-          <div className="line-numbers" style={{ transform: `translateY(${cameraTransform.y}px)` }}>
+          <div
+            className="line-numbers"
+            style={{ transform: `translateY(${cameraTransform.y}px)` }}>
             {renderLineNumbers(500, 12, cameraTransform)}
           </div>
           <div
             ref={worldRef}
             className="game-world"
             style={{
-              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`
-            }}
-            >
+              transform: `translate(${cameraTransform.x}px, ${cameraTransform.y}px)`,
+            }}>
             {gameStatus === 'menu' && (
               <div className="menu-container">
                 <button onClick={handleGameStart}>Start Game</button>
@@ -471,10 +487,25 @@ const Game: React.FC = () => {
             {/* Playing state */}
             {gameStatus === 'playing' && (
               <>
+                {/* Level transition overlay */}
+                {isLevelTransitioning && (
+                  <div className="level-transition">
+                    <h2>Level {currentLevel} Complete!</h2>
+                    <p>
+                      Reward: {currentLevelConfig.mathbucksReward} Mathbucks
+                    </p>
+                    {currentLevel < 7 && (
+                      <p>Preparing Level {currentLevel + 1}...</p>
+                    )}
+                  </div>
+                )}
+
                 {renderEnemies(enemies)}
                 {/* Player */}
                 <div
-                  className={`player ${isMoving ? 'moving' : ''} ${isDashing ? 'dashing' : ''} ${isCharging ? 'charging' : ''}`}
+                  className={`player ${isMoving ? 'moving' : ''} ${
+                    isDashing ? 'dashing' : ''
+                  } ${isCharging ? 'charging' : ''}`}
                   style={{
                     left: `${playerPosition.x}px`,
                     top: `${playerPosition.y}px`,
@@ -491,7 +522,9 @@ const Game: React.FC = () => {
                   return (
                     <div
                       key={projectile.id}
-                      className={`debug-shot gun-${currentGun} ${projectile.isCharged ? 'charged' : 'normal'}`}
+                      className={`debug-shot gun-${currentGun} ${
+                        projectile.isCharged ? 'charged' : 'normal'
+                      }`}
                       style={{
                         left: `${projectile.position.x}px`,
                         top: `${projectile.position.y}px`,
