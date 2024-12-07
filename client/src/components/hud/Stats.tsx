@@ -76,7 +76,7 @@ const Hud = () => {
                 <div className="level-display">
                     <Skull size={20} color="#4CAF50" />
                     <span className="level-value">
-                        {levelKillCount}/{levelKillCount === 7 ? currentLevelConfig.requiredKills : "?"}
+                        {levelKillCount/ currentLevelConfig.requiredKills}
                     </span>
                 </div>
             </div>
