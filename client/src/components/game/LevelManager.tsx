@@ -7,7 +7,9 @@ import {
     incrementKillCount,
     updateMathbucks,
     resetKillCount,
-    updateEnemies
+    updateEnemies,
+    movePlayer,
+    Position
 } from '../../storeRedux/gameSlice';
 import { Enemy } from '../../storeRedux/gameSlice';
 import { EnemyTypeKey } from './Enemy';
@@ -172,12 +174,17 @@ export const useLevelManager = (cameraTransform: { x: number; y: number }) => {
         }, transitionDelay + transitionDuration);
     }, [currentLevel, dispatch, mathbucks, getCurrentLevelConfig]);
 
-    const initializeLevel = useCallback((level: number) => {
+    const initializeLevel = useCallback((level: number, savedPlayerPosition?: Position) => {
         // Clear existing enemies
         dispatch(updateEnemies([]));
 
         // Reset kill count for the level
         dispatch(resetKillCount());
+
+        // Set player position if provided (for saved games)
+        if (savedPlayerPosition) {
+            dispatch(movePlayer(savedPlayerPosition));
+        }
 
         // Spawn initial wave of enemies for the level
         const config = LEVEL_CONFIGS[level];

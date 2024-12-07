@@ -23,7 +23,7 @@ interface PlayerMovementReturn {
   updatePlayerPosition: (deltaTime: number) => void;
 }
 
-type GameStatus = 'menu' | 'playing' | 'gameOver' | 'victory';
+type GameStatus = 'menu' | 'playing' | 'gameOver' | 'victory' | 'loading';
 
 /**
  * useCamera handles viewport positioning and visible line range calculations
@@ -297,26 +297,40 @@ export const renderLineNumbers = (
   cameraTransform: { x: number; y: number }
 ) => {
   const numbers = [];
-  // iterate through all possible line numbers
-  for (let i = 1; i <= totalLines; i++) {
-    // calculate position for current line
-    // subtract 1 from i since line counting starts at 1 but positions start at 0
-    const linePosition = (i - 1) * lineHeight;
+  // Calculate max lines based on the movement boundary (509 * 12) divided by line height
+  const maxLines = Math.floor((509 * 12) / (lineHeight * 2)); // Using lineHeight * 2 since we doubled spacing
 
+  for (let i = 1; i <= maxLines; i++) {
+    const linePosition = (i - 1) * lineHeight * 2;
     const isVisible =
       linePosition >= -cameraTransform.y &&
       linePosition <= -cameraTransform.y + VIEWPORT.HEIGHT;
 
-        // only render numbers for visible lines
-        if (isVisible) {
-            // create span element for line number with:
-            // unique key for React reconciliation
-            // absolute positioning for precise placement
-            // top position set to exact pixel location
-            numbers.push(<div>{i}</div>);
-        }
+    if (isVisible) {
+      numbers.push(
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            top: `${linePosition}px`,
+            paddingRight: '8px',
+            paddingTop: '12px',
+            width: '40px',
+            height: '36px',
+            textAlign: 'right',
+            color: '#666',
+            fontSize: '14px',
+            fontFamily: 'monospace',
+            userSelect: 'none',
+            lineHeight: '24px'
+          }}
+        >
+          {i}
+        </div>
+      );
     }
-    return numbers;
+  }
+  return numbers;
 };
 
 

@@ -46,7 +46,7 @@ interface GameState {
   isPaused: boolean;
   isLeaderboardOpen: boolean;
   isStatsOpen: boolean;
-  gameStatus: 'menu' | 'playing' | 'gameOver' | 'victory';
+  gameStatus: 'menu' | 'playing' | 'gameOver' | 'victory' | 'loading';
   stats: {
     [key: string]: number;
   };
@@ -128,7 +128,7 @@ const gameSlice = createSlice({
     },
     setGameStatus: (
       state,
-      action: PayloadAction<'menu' | 'playing' | 'gameOver' | 'victory'>
+      action: PayloadAction<'menu' | 'playing' | 'gameOver' | 'victory' | 'loading'>
     ) => {
       state.gameStatus = action.payload;
     },
@@ -198,11 +198,7 @@ const gameSlice = createSlice({
       state.levelKillCount = 0;
     },
     advanceLevel: (state) => {
-      if (state.currentLevel < 7) {
         state.currentLevel += 1;
-      } else {
-        state.gameStatus = 'victory';
-      }
     },
     loadSavedGameState: (state, action: PayloadAction<{
       currentLevel: number;

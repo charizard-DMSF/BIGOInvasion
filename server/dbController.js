@@ -38,7 +38,7 @@ getUserName: async (req, res, next) => {
   next();
     },
 
-    // Save Session
+    // save Session
 saveGameState: async (req, res, next) => {
     try {
         const { userId, gameState } = req.body;
@@ -48,7 +48,7 @@ saveGameState: async (req, res, next) => {
             return res.status(400).json({ error: 'Missing userId' });
         }
         
-        // Delete existing session for this user
+        // delete existing session for this user
         const { error: deleteError } = await supabase
             .from('Session')
             .delete()
@@ -56,7 +56,7 @@ saveGameState: async (req, res, next) => {
             
         if (deleteError) throw deleteError;
 
-        // Create new session
+        // create new session
         const { data, error } = await supabase
             .from('Session')
             .insert([{

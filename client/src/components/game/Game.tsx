@@ -15,7 +15,7 @@ import {
   updateProjectiles,
   damagePlayer,
   setGameStatus,
-
+  movePlayer,
   loadSavedGameState
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
@@ -89,7 +89,7 @@ const Game: React.FC = () => {
 
       const loadSavedGame = async () => {
         try {
-          const response = await fetch(`http://localhost:8080/loadGame/${userData.id}`, {
+          const response = await fetch(`http://localhost:8080/loadGame/${userData.user_id}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -100,6 +100,10 @@ const Game: React.FC = () => {
           const { gameState } = await response.json();
 
           if (gameState) {
+            // First set game status to a loading state to prevent game loop from running
+            dispatch(setGameStatus('loading'));
+
+            // Load the saved state
             dispatch(loadSavedGameState({
               currentLevel: gameState.currentLevel,
               levelKillCount: gameState.levelKillCount,
@@ -112,8 +116,14 @@ const Game: React.FC = () => {
               playerPosition: gameState.playerPosition
             }));
 
-            // Initialize the level with proper enemies
-            initializeLevel(gameState.currentLevel);
+            dispatch(movePlayer(gameState.playerPosition));
+
+            await initializeLevel(gameState.currentLevel, gameState.playerPosition);
+
+// ...
+
+            // Only start the game once everything is ready
+            dispatch(setGameStatus('playing'));
           }
         } catch (error) {
           console.error('Failed to load saved game:', error);
