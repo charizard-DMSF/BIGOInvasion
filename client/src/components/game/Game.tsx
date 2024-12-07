@@ -17,7 +17,7 @@ import {
   setGameStatus,
   movePlayer,
   loadSavedGameState,
-  finishLoading,
+  finishLoading
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -204,7 +204,7 @@ const Game: React.FC = () => {
 
           dispatch(damageEnemy({ id: enemy.id, damage }));
 
-          const updatedEnemy = updatedEnemies.find((e) => e.id === enemy.id);
+          const updatedEnemy = enemies.find((e) => e.id === enemy.id);
           if (updatedEnemy && updatedEnemy.health <= 0) {
             dispatch(defeatEnemy(enemy.id));
             handleEnemyDefeat();
@@ -394,7 +394,7 @@ const Game: React.FC = () => {
         const gunKeys: { [key: string]: string } = {
           '1': 'basic',
           '2': 'spread',
-          '3': 'sniper',
+          '3': 'sniper'
         };
 
         if (e.key in gunKeys && unlockedGuns.includes(gunKeys[e.key])) {
