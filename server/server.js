@@ -22,6 +22,11 @@ app.post('/newScore', userController.authenticateToken, dbController.addHighScor
   res.sendStatus(200)
 });
 
+app.delete('/deleteScore', userController.authenticateToken, dbController.deleteGameSession, async (req, res) => {
+  console.log("addHighScore Activated")
+  res.sendStatus(200)
+});
+
 app.get('/', async (req, res) => {
   
   const { data, error } = await supabase.from('User').select("*");

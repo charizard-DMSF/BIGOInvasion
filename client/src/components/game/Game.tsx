@@ -17,7 +17,7 @@ import {
   setGameStatus,
   movePlayer,
   loadSavedGameState,
-  finishLoading
+  finishLoading,
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
 import Store from '../store/Store';
@@ -29,7 +29,8 @@ import {
   useGameState,
   renderLineNumbers,
   renderEnemies,
-  useScoreSubmission
+  useScoreSubmission,
+  deleteGameSession
 } from './gameUtils';
 import { GUNS } from './Guns';
 import { useLevelManager } from './LevelManager';
@@ -203,7 +204,7 @@ const Game: React.FC = () => {
 
           dispatch(damageEnemy({ id: enemy.id, damage }));
 
-          const updatedEnemy = enemies.find((e) => e.id === enemy.id);
+          const updatedEnemy = updatedEnemies.find((e) => e.id === enemy.id);
           if (updatedEnemy && updatedEnemy.health <= 0) {
             dispatch(defeatEnemy(enemy.id));
             handleEnemyDefeat();
@@ -360,14 +361,19 @@ const Game: React.FC = () => {
   );
 
 
-  const handleCompleteReset = useCallback(() => {
-    submitScore(); 
-    handleGameReset();
-    setIsDashing(false);
-    setCanDash(true);
-    setIsMoving(false);
-    setIsCharging(false);
-    lastFrameTimestamp.current = 0;
+  const handleCompleteReset = useCallback(async () => {
+    try {
+      await submitScore();
+      await deleteGameSession();
+      handleGameReset();
+      setIsDashing(false);
+      setCanDash(true);
+      setIsMoving(false);
+      setIsCharging(false);
+      lastFrameTimestamp.current = 0;
+    } catch (error) {
+      console.error('Error during game reset:', error);
+    }
   }, [handleGameReset, setIsMoving, submitScore]);
 
   // ---------------

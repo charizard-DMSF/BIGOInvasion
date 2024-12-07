@@ -433,3 +433,36 @@ export const useScoreSubmission = () => {
     handleMainMenuQuit
   };
 };
+
+export const deleteGameSession = async () => {
+  const user = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+
+  if (!user || !token) {
+    console.log('User not authenticated, skipping session deletion');
+    return;
+  }
+
+  try {
+    const userId = JSON.parse(user).user_id;
+
+    const response = await fetch('http://localhost:8080/deleteSession', {
+      method: 'DELETE',  // Make sure this is DELETE
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        userId: userId
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete session');
+    }
+
+    console.log('Session deleted successfully');
+  } catch (error) {
+    console.error('Error deleting session:', error);
+  }
+};

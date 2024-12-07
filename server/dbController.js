@@ -77,6 +77,33 @@ saveGameState: async (req, res, next) => {
         console.error('Save game error:', error);
         res.status(500).json({ error: error.message });
     }
+    },
+
+    deleteGameSession: async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    console.log('Attempting to delete session for userId:', userId);  // Add this
+
+    if (!userId) {
+      console.log('Missing userId');
+      return res.status(400).json({ error: 'Missing userId' });
+    }
+
+    const { error: deleteError } = await supabase
+      .from('Session')
+      .delete()
+      .eq('user_id', userId);
+
+    if (deleteError) throw deleteError;
+
+    console.log('Session deleted from database');  // Add this
+    res.status(200).json({
+      message: 'Game session deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete session error:', error);
+    res.status(500).json({ error: error.message });
+  }
 },
  
  // load session
@@ -98,7 +125,7 @@ loadGameState: async (req, res, next) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-}
+    },
 };
 
 
