@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../storeRedux/store';
 import {
   movePlayer,
@@ -23,7 +24,7 @@ interface PlayerMovementReturn {
   updatePlayerPosition: (deltaTime: number) => void;
 }
 
-type GameStatus = 'menu' | 'playing' | 'gameOver' | 'victory';
+type GameStatus = 'menu' | 'playing' | 'gameOver' | 'victory' | 'loading';
 
 /**
  * useCamera handles viewport positioning and visible line range calculations
@@ -369,4 +370,94 @@ export const renderEnemies = (enemies: Enemy[]) => {
       type={enemy.type}
     />
   ));
+};
+
+export const useScoreSubmission = () => {
+  const score = useAppSelector((state) => state.game.score);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+
+  const submitScore = useCallback(async () => {
+    const user = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    if (!user || !token) {
+      console.log('User not authenticated, skipping score submission');
+      return;
+    }
+
+    try {
+      const userId = JSON.parse(user).user_id;
+
+      const response = await fetch('http://localhost:8080/newScore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: userId,
+          score: score,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit score');
+      }
+
+      console.log('Score submitted successfully');
+    } catch (error) {
+      console.error('Error submitting score:', error);
+    }
+  }, [score]);
+
+  const handleMainMenuQuit = useCallback(async () => {
+    if (
+      window.confirm(
+        'Are you sure? Your current score will be submitted and progress will be lost.'
+      )
+    ) {
+      await submitScore();
+      dispatch(setGameStatus('menu'));
+      navigate('/');
+    }
+  }, [submitScore, dispatch, navigate]);
+
+  return {
+    submitScore,
+    handleMainMenuQuit,
+  };
+};
+
+export const deleteGameSession = async () => {
+  const user = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+
+  if (!user || !token) {
+    console.log('User not authenticated, skipping session deletion');
+    return;
+  }
+
+  try {
+    const userId = JSON.parse(user).user_id;
+
+    const response = await fetch('http://localhost:8080/deleteSession', {
+      method: 'DELETE', // Make sure this is DELETE
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        userId: userId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete session');
+    }
+
+    console.log('Session deleted successfully');
+  } catch (error) {
+    console.error('Error deleting session:', error);
+  }
 };

@@ -10,16 +10,16 @@ interface FormData {
 const Login = () => {
   const [formData, setFormData] = React.useState<FormData>({
     username: '',
-    password: ''
+    password: '',
   });
   const [loading, setLoading] = React.useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [id.replace('login-', '')]: value
+      [id.replace('login-', '')]: value,
     }));
   };
 
@@ -34,16 +34,42 @@ const Login = () => {
         },
         body: JSON.stringify(formData),
       });
+
       const data = await response.json();
+
+      // Add debug logging
+      console.log('Server response:', data);
+
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
       }
+
+      // Verify user_id exists before storing
+      if (!data.user?.user_id) {
+        // Changed from data.user?.id to data.user?.user_id
+        console.error('User ID missing from server response:', data);
+        throw new Error('Invalid server response');
+      }
+
+      // Store the complete user object
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          user_id: data.user.user_id, // Make sure we're using user_id consistently
+          username: data.user.username,
+        })
+      );
+
       message.success('Login successful!');
       navigate('/');
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Login failed. Please try again.');
+      console.error('Login error:', error);
+      message.error(
+        error instanceof Error
+          ? error.message
+          : 'Login failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -55,7 +81,9 @@ const Login = () => {
       <div className="menu-options">
         <form onSubmit={handleLogin} style={{ width: '300px' }}>
           <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="login-username" style={{ display: 'block', marginBottom: '8px' }}>
+            <label
+              htmlFor="login-username"
+              style={{ display: 'block', marginBottom: '8px' }}>
               Username:
             </label>
             <Input
@@ -68,7 +96,9 @@ const Login = () => {
             />
           </div>
           <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="login-password" style={{ display: 'block', marginBottom: '8px' }}>
+            <label
+              htmlFor="login-password"
+              style={{ display: 'block', marginBottom: '8px' }}>
               Password:
             </label>
             <Input.Password
@@ -84,8 +114,7 @@ const Login = () => {
             htmlType="submit"
             loading={loading}
             className="menu-option"
-            style={{ width: '100%', marginBottom: '10px' }}
-          >
+            style={{ width: '100%', marginBottom: '10px' }}>
             Log In
           </Button>
           <div style={{ textAlign: 'center', marginTop: '20px' }}>

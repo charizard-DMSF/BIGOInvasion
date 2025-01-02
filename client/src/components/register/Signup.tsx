@@ -10,16 +10,16 @@ interface SignupFormData {
 const Signup = () => {
   const [formData, setFormData] = React.useState<SignupFormData>({
     username: '',
-    password: ''
+    password: '',
   });
   const [loading, setLoading] = React.useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [id.replace('signup-', '')]: value
+      [id.replace('signup-', '')]: value,
     }));
   };
 
@@ -35,15 +35,38 @@ const Signup = () => {
         body: JSON.stringify(formData),
       });
       const data = await response.json();
+
+      // Debug log to see what we're getting from the server
+      console.log('Server response:', data);
+
       if (!response.ok) {
         throw new Error(data.error || 'Signup failed');
       }
+
+      // Make sure we're storing the complete user data
+      if (!data.user?.id) {
+        console.error('User ID missing from server response:', data);
+        throw new Error('Invalid server response');
+      }
+
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Debug log to verify what we stored
+      console.log(
+        'Stored user data:',
+        JSON.parse(localStorage.getItem('user') || '{}')
+      );
+
       message.success('Account created successfully!');
       navigate('/');
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Signup failed. Please try again.');
+      console.error('Signup error:', error);
+      message.error(
+        error instanceof Error
+          ? error.message
+          : 'Signup failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -55,7 +78,9 @@ const Signup = () => {
       <div className="menu-options">
         <form onSubmit={handleSignup} style={{ width: '300px' }}>
           <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="signup-username" style={{ display: 'block', marginBottom: '8px' }}>
+            <label
+              htmlFor="signup-username"
+              style={{ display: 'block', marginBottom: '8px' }}>
               Username:
             </label>
             <Input
@@ -68,7 +93,9 @@ const Signup = () => {
             />
           </div>
           <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="signup-password" style={{ display: 'block', marginBottom: '8px' }}>
+            <label
+              htmlFor="signup-password"
+              style={{ display: 'block', marginBottom: '8px' }}>
               Password:
             </label>
             <Input.Password
@@ -84,8 +111,7 @@ const Signup = () => {
             htmlType="submit"
             loading={loading}
             className="menu-option"
-            style={{ width: '100%', marginBottom: '10px' }}
-          >
+            style={{ width: '100%', marginBottom: '10px' }}>
             Create Account
           </Button>
           <div style={{ textAlign: 'center', marginTop: '20px' }}>

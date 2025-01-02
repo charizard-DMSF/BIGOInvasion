@@ -13,6 +13,10 @@ import {
   defeatEnemy,
   updateProjectiles,
   damagePlayer,
+  setGameStatus,
+  movePlayer,
+  loadSavedGameState,
+  finishLoading,
   removeEnemy,
 } from '../../storeRedux/gameSlice';
 import PauseMenu from '../menu/Pause';
@@ -26,6 +30,8 @@ import {
   useGameState,
   renderLineNumbers,
   renderEnemies,
+  useScoreSubmission,
+  deleteGameSession,
 } from './gameUtils';
 import { GUNS } from './Guns';
 import { useLevelManager } from './LevelManager';
@@ -33,35 +39,45 @@ import { useSearchParams } from 'react-router-dom';
 
 const Game: React.FC = () => {
   const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
   const worldRef = useRef<HTMLDivElement>(null);
   const activeKeys = useRef<{ [key: string]: boolean }>({});
   const lastFrameTimestamp = useRef<number>(0);
   const frameRequestId = useRef<number>();
-  const searchParams = useSearchParams();
 
+  // ---------------
   // redux state selectors
-  const currentGun = useAppSelector((state) => state.game.currentGun);
+  // grouped by related functionality
+  // ---------------
+  // game state
+  const gameStatus = useAppSelector((state) => state.game.gameStatus);
+  const currentLevel = useAppSelector((state) => state.game.currentLevel);
+  const inStore = useAppSelector((state) => state.game.inStore);
+
+  // ui state
   const isPaused = useAppSelector((state) => state.game.isPaused);
   const isLeaderboardOpen = useAppSelector(
     (state) => state.game.isLeaderboardOpen
   );
   const isStatsOpen = useAppSelector((state) => state.game.isStatsOpen);
+
+  // redux state selectors
+  const currentGun = useAppSelector((state) => state.game.currentGun);
   const enemies = useAppSelector((state) => state.game.enemies);
-  const currentLevel = useAppSelector((state) => state.game.currentLevel);
+  const playerPosition = useAppSelector((state) => state.game.playerPosition);
+  const projectiles = useAppSelector((state) => state.game.projectiles);
+  const unlockedGuns = useAppSelector((state) => state.game.unlockedGuns);
 
-  const { playerPosition, gameStatus, inStore, projectiles, unlockedGuns } =
-    useAppSelector((state) => state.game);
-
+  // ---------------
   // custom hooks
+  // each hook manages a specific piece of functionality
+  // ---------------
   const { cameraTransform, updateCamera } = useCamera(playerPosition);
   const { updateProjectilePositions } = useProjectiles(gameStatus);
   const { handleGameStart, handleGameReset } = useGameState();
-  const {
-    currentLevelConfig,
-    isLevelTransitioning,
-    handleEnemyDefeat,
-    killCount,
-  } = useLevelManager(cameraTransform);
+  const { currentLevelConfig, isLevelTransitioning, handleEnemyDefeat } =
+    useLevelManager(cameraTransform);
+  const { submitScore } = useScoreSubmission();
 
   const {
     isDashing,
@@ -82,7 +98,10 @@ const Game: React.FC = () => {
     inStore
   );
 
-  // add a cooldown stage for player damage
+  // ---------------
+  // player damage handling
+  // manages invulnerability frames after taking damage
+  // ---------------
   const [isPlayerInvulnerable, setIsPlayerInvulnerable] = useState(false);
   const isInvulnerableRef = useRef(false);
   const damageCooldown = 1000;
@@ -91,7 +110,56 @@ const Game: React.FC = () => {
     isInvulnerableRef.current = isPlayerInvulnerable;
   }, [isPlayerInvulnerable]);
 
-  // check collisions for projectile hits enemy and enemy hits player
+  // ---------------
+  // saved game loading
+  // handles loading game state from backend
+  // ---------------
+  useEffect(() => {
+    const loadSave = searchParams.get('loadSave');
+    const user = localStorage.getItem('user');
+
+    if (loadSave === 'true' && user) {
+      const userData = JSON.parse(user);
+
+      const loadSavedGame = async () => {
+        try {
+          const response = await fetch(
+            `http://localhost:8080/loadGame/${userData.user_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            }
+          );
+
+          if (!response.ok) throw new Error('Failed to load game');
+
+          const { gameState } = await response.json();
+
+          if (gameState) {
+            dispatch(
+              loadSavedGameState({
+                ...gameState,
+                enemies: gameState.enemies || [],
+              })
+            );
+            dispatch(movePlayer(gameState.playerPosition));
+            dispatch(finishLoading());
+          }
+        } catch (error) {
+          console.error('Failed to load saved game:', error);
+          dispatch(setGameStatus('playing'));
+        }
+      };
+
+      loadSavedGame();
+    }
+  }, [dispatch, searchParams]);
+
+  // ---------------
+  // collision detection system
+  // handles all game collision checks and responses
+  // ---------------
   const checkCollisions = React.useCallback(() => {
     const updatedProjectiles = [...projectiles];
     const updatedEnemies = [...enemies];
@@ -210,6 +278,10 @@ const Game: React.FC = () => {
     handleEnemyDefeat,
   ]);
 
+  // ---------------
+  // enemy movement system
+  // updates enemy positions based on player location
+  // ---------------
   const updateEnemyPositions = React.useCallback(
     (deltaTime: number) => {
       const updatedEnemies = enemies.map((enemy) => {
@@ -242,7 +314,10 @@ const Game: React.FC = () => {
     [enemies, dispatch, playerPosition]
   );
 
-  // game loop
+  // ---------------
+  // main game loop
+  // orchestrates all game updates
+  // ---------------
   const gameLoop = React.useCallback(
     (timestamp: number) => {
       if (
@@ -279,7 +354,10 @@ const Game: React.FC = () => {
     ]
   );
 
+  // ---------------
   // event handlers
+  // manage keyboard and mouse input
+  // ---------------
   const handleStoreToggle = React.useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'p' || e.key === 'P') {
@@ -306,16 +384,25 @@ const Game: React.FC = () => {
     [dispatch, isLeaderboardOpen, isStatsOpen]
   );
 
-  const handleCompleteReset = useCallback(() => {
-    handleGameReset();
-    setIsDashing(false);
-    setCanDash(true);
-    setIsMoving(false);
-    setIsCharging(false);
-    lastFrameTimestamp.current = 0;
-  }, [handleGameReset, setIsMoving]);
+  const handleCompleteReset = useCallback(async () => {
+    try {
+      await submitScore();
+      await deleteGameSession();
+      handleGameReset();
+      setIsDashing(false);
+      setCanDash(true);
+      setIsMoving(false);
+      setIsCharging(false);
+      lastFrameTimestamp.current = 0;
+    } catch (error) {
+      console.error('Error during game reset:', error);
+    }
+  }, [handleGameReset, setIsMoving, submitScore]);
 
-  // effect for event listeners and game loop
+  // ---------------
+  // event listeners setup
+  // initializes all game input handling
+  // ---------------
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -418,12 +505,18 @@ const Game: React.FC = () => {
     unlockedGuns,
   ]);
 
-  // render store if in store mode
+  // ---------------
+  // conditional rendering
+  // handle store mode
+  // ---------------
   if (inStore) {
     return <Store />;
   }
 
-  const { Header, Footer, Content } = Layout;
+  // ---------------
+  // layout configuration
+  // ---------------
+  const { Header } = Layout;
 
   const layoutStyle = {
     borderRadius: 8,
@@ -432,7 +525,7 @@ const Game: React.FC = () => {
     maxWidth: 'calc(100% - 8px)',
   };
 
-  const boundaryPadding = 20;
+  // const boundaryPadding = 20;
 
   return (
     <Layout style={layoutStyle}>
